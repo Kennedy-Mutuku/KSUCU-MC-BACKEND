@@ -29,7 +29,7 @@ exports.signup = async (req, res) => {
     );
 
     const token = generateToken({ username, password, email, phone, et, yos, reg, ministry });
-    const verificationLink = `http://localhost:${process.env.PORT}/users/verify-email?token=${token}`;
+    const verificationLink = `https://ksucu-mc-backend.onrender.com/users/verify-email?token=${token}`;
 
     const subject = 'Email Verification';
     const html = `<p>Please verify your email by clicking on the following link, it expires in five minutes: <a href="${verificationLink}">Verify Email</a></p>`;
@@ -130,7 +130,7 @@ exports.verifyEmail = async (req, res) => {
       sameSite: 'strict', // Enhances security by preventing CSRF attacks
     });
 
-    res.redirect(`http://localhost:${5173}`);
+    res.redirect(`https://ksucu-mc-frontend.vercel.app/`);
 
   } catch (error) {
     console.error('Error verifying email:', error.message);
