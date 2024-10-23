@@ -25,6 +25,7 @@ const corsOptions = {
         'http://localhost:3000',
         'http://localhost:5174',
         'http://localhost:5173',
+        'https://ksucu-mc-backend.onrender.com'
       ];
       if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
         // Allow requests from the allowed origins or from no origin (e.g., non-browser clients)
