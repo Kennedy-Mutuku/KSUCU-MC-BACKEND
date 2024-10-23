@@ -31,7 +31,7 @@ exports.signup = async (req, res) => {
     );
 
     const token = generateToken({ username, password, email, phone, et, yos, reg, ministry, course });
-    const verificationLink = `http://localhost:${process.env.PORT}/users/verify-email?token=${token}`;
+    const verificationLink = `https://ksucu-mc-backend.onrender.com/users/verify-email?token=${token}`;
 
     const subject = 'Email Verification';
     const html = `<p>Please verify your email by clicking on the following link, it expires in five minutes: <a href="${verificationLink}">Verify Email</a></p>`;
@@ -136,7 +136,7 @@ exports.verifyEmail = async (req, res) => {
       sameSite: 'strict', // Enhances security by preventing CSRF attacks
     });
 
-    res.redirect(`http://localhost:${5173}`);
+    res.redirect(`https://ksucu-mc-frontend.vercel.app/`);
 
   } catch (error) {
     console.error('Error verifying email:', error.message);
@@ -198,7 +198,7 @@ exports.forgetPassword = async (req, res) => {
 
     const token = generateToken({ email });
 
-    const resetLink = `http://localhost:${5173}/reset?token=${token}`;
+    const resetLink = `https://ksucu-mc-frontend.vercel.app/reset?token=${token}`;
 
     const subject = 'Password Reset';
     const text = `Please reset your password by clicking on the following link: ${resetLink}`;
@@ -309,4 +309,5 @@ exports.logout = async (req, res) => {
     return res.status(500).json({ message: 'An error occurred while processing your request' });
   }
 };
+
 
