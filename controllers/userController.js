@@ -131,7 +131,7 @@ exports.verifyEmail = async (req, res) => {
 
     res.cookie('user_s', token, {
       httpOnly: true,
-      secure: false, // Set to true in production
+      secure: true, // Set to true in production
       maxAge: 3 * 60 * 60 * 1000, // 3 hours (match session maxAge)
       sameSite: 'strict', // Enhances security by preventing CSRF attacks
     });
@@ -166,7 +166,7 @@ exports.login = async (req, res) => {
 
     res.cookie('user_s', token, {
       httpOnly: true,
-      secure: false, // Set to true in production
+      secure: true, // Set to true in production
       maxAge: 3 * 60 * 60 * 1000, // 3 hours (match session maxAge)
       sameSite: 'strict', // Enhances security by preventing CSRF attacks
     });
@@ -309,5 +309,4 @@ exports.logout = async (req, res) => {
     return res.status(500).json({ message: 'An error occurred while processing your request' });
   }
 };
-
 

@@ -70,7 +70,7 @@ exports.login = async (req, res) => {
 
         res.cookie('admins_token', token, {
             httpOnly: true,
-            secure: false, // Set to true in production
+            secure: true, // Set to true in production
             maxAge: 3 * 60 * 60 * 1000, // 3 hours
             sameSite: 'strict',
         });
