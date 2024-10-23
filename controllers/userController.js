@@ -3,18 +3,19 @@ const bcrypt = require('bcryptjs');
 const User = require('../models/user');
 const Soul = require('../models/savedSouls')
 const bs = require('../models/biblestudy')
+const news = require('../models/adminNews')
 const { sendMail, generateToken } = require('../helperModules/sendmail');
 
 exports.signup = async (req, res) => {
   try {
-    const { username, password, email, yos, et, phone, ministry, reg } = req.body;
+    const { username, password, email, yos, et, phone, ministry, course, reg } = req.body;
     const existingUser = await User.findOne({ $or: [{ email }, { phone }, { reg }] });
     if (existingUser) {
       return res.status(400).json({ message: 'Email/Phone/REG already exists' });
     }
 
-    if (!username || !password || !email || !phone  || !et || !yos || !reg || !ministry) {
-      return res.status(400).json({ message: 'All fields are required' });
+    if (!username || !password || !email || !phone  || !et || !yos || !reg || !ministry || !course) {
+      return res.status(401).json({ message: 'All fields are required' });
     }
 
     console.log(
@@ -25,10 +26,11 @@ exports.signup = async (req, res) => {
       reg,
       et,
       yos,
-      email
+      email,
+      course
     );
 
-    const token = generateToken({ username, password, email, phone, et, yos, reg, ministry });
+    const token = generateToken({ username, password, email, phone, et, yos, reg, ministry, course });
     const verificationLink = `http://localhost:${process.env.PORT}/users/verify-email?token=${token}`;
 
     const subject = 'Email Verification';
@@ -96,7 +98,10 @@ exports.verifyEmail = async (req, res) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_USER_SECRET);
-    let { username, password, email, phone, et, yos, reg, ministry } = decoded;
+    let { username, password, email, phone, et, yos, reg, ministry, course } = decoded;
+
+    console.log(course);
+    
 
     email = email.toLowerCase();
 
@@ -115,6 +120,7 @@ exports.verifyEmail = async (req, res) => {
       phone,
       yos,
       reg,
+      course,
       ministry
     });
 
@@ -174,6 +180,74 @@ exports.login = async (req, res) => {
   
 }
 
+exports.forgetPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ message: 'Email is required' });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if(user && user.googleId){
+      return res.status(404).json({ message: 'erroo895423456' });
+    }
+
+    const token = generateToken({ email });
+
+    const resetLink = `http://localhost:${5173}/reset?token=${token}`;
+
+    const subject = 'Password Reset';
+    const text = `Please reset your password by clicking on the following link: ${resetLink}`;
+    const html = `<p>Please reset your password by clicking on the following link, it expires in one hour: <a href="${resetLink}">Reset Password</a></p>`;
+
+    await sendMail(email, subject, text, html);
+
+    res.status(200).json({ message: 'Password reset email sent successfully!' });
+
+  } catch (error) {
+    res.status(500).json({ message: error });
+  }
+
+};
+
+exports.resetPassword = async (req, res) => {
+  try {
+    const { token } = req.query;
+    const { password } = req.body;
+
+    if (!token) {
+      return res.status(400).json({ message: 'Reset token is required' });
+    }
+
+    if (!password) {
+      return res.status(400).json({ message: 'Password is required' });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_USER_SECRET);
+    
+    const userEmail = decoded.email;
+
+    if (!userEmail) {
+      return res.status(400).json({ message: 'Email not found in token payload' });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const result = await User.updateOne({ email: userEmail }, { password: hashedPassword });
+
+    res.status(200).json({ message: 'Password reset successfully!' });
+
+  } catch (error) {
+    console.error('Password reset error:', error);
+    res.status(400).json({ message: 'Invalid or expired reset token' });
+  }
+
+};
+
 exports.getUserData = async (req, res) => {
   try {
     const userId = req.userId; // Extract user ID from authentication middleware
@@ -191,6 +265,7 @@ exports.getUserData = async (req, res) => {
       ministry : user.ministry,
       reg : user.reg,
       et : user.et,
+      course: user.course,
       phone: user.phone
     };
     res.status(200).json(userData);
@@ -200,4 +275,38 @@ exports.getUserData = async (req, res) => {
 };
 
 
+exports.updateUserData = async (req, res) => {
+  try {
+    const userId = req.userId; // Extract user ID from authentication middleware
+
+    // Extract updated user details from request body
+    const { username, email, yos, ministry, reg, et, course, phone } = req.body;
+
+    // Find the user by ID and update with the new details
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { username, email, yos, ministry, reg, et, course, phone },
+      { new: true } // Return the updated document
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.status(200).json({ message: 'User details updated successfully', updatedUser });
+  } catch (error) {
+    res.status(500).json({ message: error });
+  }
+};
+
+exports.logout = async (req, res) => {
+  try {
+    res.clearCookie('token'); 
+    res.clearCookie('user_s'); 
+    return res.status(200).json({ message: 'Logout successful' });
+  } catch (error) {
+    console.error('Error during logout:', error);
+    return res.status(500).json({ message: 'An error occurred while processing your request' });
+  }
+};
 
