@@ -18,7 +18,6 @@ module.exports = (req, res, next) => {
     
     req.userId = decoded.userId;
 
-    console.log('successfully verified');
     
     next();
   });

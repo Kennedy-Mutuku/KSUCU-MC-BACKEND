@@ -137,12 +137,11 @@ exports.uploadFile = (req, res) => {
     });
 };
 
+// Fetch and send news data without verification
 exports.getNewsData = async (req, res) => {
     try {
-        const userId = req.userId; // Assuming the userId is passed via middleware (if needed)
-        
-        // Fetch the user’s news data
-        const user = await User.findById(userId).select('title body imageUrl');
+        // Fetch the user's news data (without verifying userId)
+        const user = await User.findOne().select('title body imageUrl');
 
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
@@ -155,7 +154,9 @@ exports.getNewsData = async (req, res) => {
             imageUrl: user.imageUrl
         });
     } catch (error) {
+        console.error(error);
         res.status(500).json({ message: 'Error fetching data' });
     }
 };
+
 

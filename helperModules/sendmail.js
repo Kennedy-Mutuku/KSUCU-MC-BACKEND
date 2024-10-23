@@ -28,8 +28,8 @@ const sendMail = async (to, subject, html) => {
   }
 };
 
-const generateToken = ({ username, password, email, yos, et, phone, ministry, reg }) => {
-  const payload = { username, password, email, yos, et, phone, ministry, reg };
+const generateToken = ({ username, password, email, yos, et, phone, ministry,course, reg }) => {
+  const payload = { username, password, email, yos, et, phone, ministry,course, reg };
   const secret = process.env.JWT_USER_SECRET;
   const options = { expiresIn: '1h' };
   return jwt.sign(payload, secret, options);

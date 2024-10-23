@@ -7,6 +7,7 @@ const userSchema = new mongoose.Schema({
   reg: { type: String, required: true, unique: true },
   yos: { type: String, required: true },
   ministry: { type: String, required: true},
+  course: { type: String, required: true},
   et: { type: String, required: true},
   password: { type: String, required: true }
 });
