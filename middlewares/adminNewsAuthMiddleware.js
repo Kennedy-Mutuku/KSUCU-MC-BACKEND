@@ -8,6 +8,8 @@ module.exports = (req, res, next) => {
   const token = req.cookies.admins_token;
   
   if (!token) {
+    console.log('no token provided');
+    
     return res.status(401).json({ message: 'Authentication failed: No token provided.' });
   }
 
