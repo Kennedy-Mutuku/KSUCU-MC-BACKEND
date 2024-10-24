@@ -5,7 +5,7 @@ const userRoutes = require('./routes/userRoutes');
 const newsAdminRoutes = require('./routes/newsRoutes')
 require('dotenv').config();
 const fs = require('fs');
-const cors = require('cors')
+// const cors = require('cors')
 const cookieParser = require ('cookie-parser');
 
 const app = express();
@@ -70,4 +70,3 @@ if(process.env.NODE_ENV === 'production'){
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-
