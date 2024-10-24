@@ -72,7 +72,6 @@ exports.login = async (req, res) => {
             httpOnly: true,
             secure: true, // Set to true in production
             maxAge: 3 * 60 * 60 * 1000, // 3 hours
-            sameSite: 'strict',
         });
 
         res.status(200).json({ message: 'Login successful' });

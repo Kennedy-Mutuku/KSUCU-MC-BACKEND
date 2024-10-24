@@ -133,7 +133,6 @@ exports.verifyEmail = async (req, res) => {
       httpOnly: true,
       secure: true, // Set to true in production
       maxAge: 3 * 60 * 60 * 1000, // 3 hours (match session maxAge)
-      sameSite: 'strict', // Enhances security by preventing CSRF attacks
     });
 
     res.redirect(`https://ksucu-mc-frontend.vercel.app/`);
@@ -168,7 +167,6 @@ exports.login = async (req, res) => {
       httpOnly: true,
       secure: true, // Set to true in production
       maxAge: 3 * 60 * 60 * 1000, // 3 hours (match session maxAge)
-      sameSite: 'strict', // Enhances security by preventing CSRF attacks
     });
 
     // Sending a success response
