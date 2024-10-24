@@ -82,11 +82,66 @@ exports.login = async (req, res) => {
 };
 
 // File upload (photo, title, and body text)
+// exports.uploadFile = (req, res) => {
+//     upload(req, res, async (err) => {
+//         if (err) {
+//             console.log(err);
+            
+//             return res.status(500).json({ message: 'Error uploading file' });
+//         }
+
+//         const { title, body } = req.body;
+//         const image = req.file;
+
+//         if (!title || !body || !image) {
+//             return res.status(400).json({ message: 'All fields are required (title, body, and image)' });
+//         }
+
+//         try {
+//             const userId = req.userId;  // Extracted from JWT in the middleware
+            
+//             // Find the user by ID
+//             const user = await User.findById(userId);
+
+//             if (!user) {
+//                 return res.status(404).json({ message: 'User not found' });
+//             }
+
+//             // Check if user already has an image and delete it
+//             if (user.imageUrl) {
+//                 const oldImagePath = path.join(__dirname, '..', 'uploads', path.basename(user.imageUrl));
+//                 if (fs.existsSync(oldImagePath)) {
+//                     fs.unlinkSync(oldImagePath);  // Delete the old image file
+//                 }
+//             }
+
+//             // Create the new image URL
+//             const imageUrl = `${req.protocol}://${req.get('host')}/uploads/${image.filename}`;
+
+//             // Update the user with new title, body, and image URL
+//             user.title = title;
+//             user.body = body;
+//             user.imageUrl = imageUrl;
+//             await user.save();
+
+//             // Return a success response with the new image URL
+//             res.status(201).json({
+//                 message: 'File uploaded and previous image deleted successfully!',
+//                 imageUrl: imageUrl
+//             });
+//         } catch (error) {
+//             console.log(error);
+            
+//             res.status(500).json({ message: 'Error saving data to the database' });
+//         }
+//     });
+// };
+
+
 exports.uploadFile = (req, res) => {
     upload(req, res, async (err) => {
         if (err) {
             console.log(err);
-            
             return res.status(500).json({ message: 'Error uploading file' });
         }
 
@@ -99,7 +154,7 @@ exports.uploadFile = (req, res) => {
 
         try {
             const userId = req.userId;  // Extracted from JWT in the middleware
-            
+
             // Find the user by ID
             const user = await User.findById(userId);
 
@@ -115,8 +170,8 @@ exports.uploadFile = (req, res) => {
                 }
             }
 
-            // Create the new image URL
-            const imageUrl = `${req.protocol}://${req.get('host')}/uploads/${image.filename}`;
+            // Always create the image URL with HTTPS
+            const imageUrl = `https://${req.get('host')}/uploads/${image.filename}`;
 
             // Update the user with new title, body, and image URL
             user.title = title;
@@ -131,11 +186,11 @@ exports.uploadFile = (req, res) => {
             });
         } catch (error) {
             console.log(error);
-            
             res.status(500).json({ message: 'Error saving data to the database' });
         }
     });
 };
+
 
 // Fetch and send news data without verification
 exports.getNewsData = async (req, res) => {
