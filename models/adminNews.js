@@ -33,3 +33,4 @@ const userSchema = new mongoose.Schema({
 const User = mongoose.model('adminNews', userSchema);
 
 module.exports = User;
+

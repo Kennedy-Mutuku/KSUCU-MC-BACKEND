@@ -3,6 +3,8 @@ const path = require('path')
 const mongoose = require('mongoose');
 const userRoutes = require('./routes/userRoutes');
 const newsAdminRoutes = require('./routes/newsRoutes')
+const missionAdminRoutes = require('./routes/missionRoutes')
+const bsAdminRoutes = require('./routes/bsRoutes')
 require('dotenv').config();
 const fs = require('fs');
 const cors = require('cors')
@@ -52,6 +54,8 @@ mongoose.connect(process.env.DB_CONNECTION_URI, {
 
 app.use('/users', userRoutes);
 app.use('/adminnews', newsAdminRoutes);
+app.use('/adminmission', missionAdminRoutes);
+app.use('/adminBs', bsAdminRoutes);
 
 // Serve uploaded files statically
 app.use('/uploads', express.static('uploads'));
@@ -70,3 +74,4 @@ if(process.env.NODE_ENV === 'production'){
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+

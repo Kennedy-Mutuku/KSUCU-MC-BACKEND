@@ -9,6 +9,7 @@ router.post('/login', userController.login);
 
 // File upload route (image, title, body)
 router.post('/upload',adminNewsAuthMiddleware, userController.uploadFile);
+router.post('/logout', adminNewsAuthMiddleware, userController.logout);
 
 router.get('/news', userController.getNewsData);
 
