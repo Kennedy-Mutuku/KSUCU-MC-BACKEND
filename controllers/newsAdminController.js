@@ -56,13 +56,17 @@ exports.login = async (req, res) => {
             return res.status(400).json({ message: 'Email and password are required' });
         }
 
-        const user = await User.findOne({ email });
+        const user = await User.findOne({email});
         if (!user) {
+            console.log('No user found in the db', email);
+            
             return res.status(401).json({ message: 'Invalid username or password' });
         }
 
         const isPasswordValid = await bcrypt.compare(password, user.password);
         if (!isPasswordValid) {
+            console.log('Invalid pswd');
+            
             return res.status(401).json({ message: 'Invalid username or password' });
         }
 

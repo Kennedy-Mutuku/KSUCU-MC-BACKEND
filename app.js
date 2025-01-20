@@ -61,11 +61,11 @@ app.use('/adminBs', bsAdminRoutes);
 app.use('/uploads', express.static('uploads'));
 
 if(process.env.NODE_ENV === 'production'){
-    app.use(express.static(path.join(__dirname, '../k-s-frontend/dist')));
+    app.use(express.static(path.join(__dirname, '../KSUCU-MC-FRONTEND/dist')));
 
     app.get('*', (req,res) => {
         res.sendFile(
-            path.resolve(__dirname, '../', 'k-s-frontend', 'dist', 'index.html')
+            path.resolve(__dirname, '../', 'KSUCU-MC-FRONTEND', 'dist', 'index.html')
         )
     })
 } else{
@@ -74,4 +74,3 @@ if(process.env.NODE_ENV === 'production'){
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-
