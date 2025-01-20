@@ -29,8 +29,8 @@ const corsOptions = {
         'http://localhost:5173',
         'ksucu-mc-backend.onrender.com',
         'ksucu-mc-frontend.vercel.app',
-        'https://ksucu-mc-backend.onrender.com',
-        'https://ksucu-mc-frontend.vercel.app',
+        'https://www.ksucu-mc.co.ke',
+        'https://ksucu-mc.co.ke',
       ];
       if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
         // Allow requests from the allowed origins or from no origin (e.g., non-browser clients)
