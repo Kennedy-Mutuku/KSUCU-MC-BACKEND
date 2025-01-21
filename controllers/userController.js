@@ -156,7 +156,7 @@ exports.verifyEmail = async (req, res) => {
       sameSite: 'None', // Required for cross-site cookies
     });
 
-    res.redirect(`http://localhost:5173`);
+    res.redirect('https://ksucu-mc.co.ke');
 
   } catch (error) {
     console.error('Error verifying email:', error.message);
