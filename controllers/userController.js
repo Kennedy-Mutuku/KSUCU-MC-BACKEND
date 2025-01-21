@@ -31,7 +31,7 @@ exports.signup = async (req, res) => {
     );
 
     const token = generateToken({ username, password, email, phone, et, yos, reg, ministry, course });
-    const verificationLink = `https://ksucu-mc-backend.onrender.com/users/verify-email?token=${token}`;
+    const verificationLink = `https://ksucu-mc.co.ke/users/verify-email?token=${token}`;
 
     const subject = 'Email Verification';
     const html = `<p>Please verify your email by clicking on the following link, it expires in five minutes: <a href="${verificationLink}">Verify Email</a></p>`;
@@ -136,7 +136,7 @@ exports.verifyEmail = async (req, res) => {
       sameSite: 'None', // Required for cross-site cookies
     });
 
-    res.redirect(`https://ksucu-mc-frontend.vercel.app/`);
+    res.redirect(`https://ksucu-mc.co.ke`);
 
   } catch (error) {
     console.error('Error verifying email:', error.message);
@@ -198,7 +198,7 @@ exports.forgetPassword = async (req, res) => {
 
     const token = generateToken({ email });
 
-    const resetLink = `https://ksucu-mc-frontend.vercel.app/reset?token=${token}`;
+    const resetLink = `https://ksucu-mc.co.ke/reset?token=${token}`;
 
     const subject = 'Password Reset';
     const text = `Please reset your password by clicking on the following link: ${resetLink}`;
