@@ -5,6 +5,7 @@ const Soul = require('../models/savedSouls')
 const bs = require('../models/biblestudy')
 const news = require('../models/adminNews')
 const { sendMail, generateToken } = require('../helperModules/sendmail');
+const backendURL = 'https://ksucu-mc.co.ke'
 
 exports.signup = async (req, res) => {
   try {
@@ -31,12 +32,31 @@ exports.signup = async (req, res) => {
     );
 
     const token = generateToken({ username, password, email, phone, et, yos, reg, ministry, course });
-    const verificationLink = `https://ksucu-mc.co.ke/users/verify-email?token=${token}`;
+    const verificationLink = `${backendURL}/users/verify-email?token=${token}`;
 
-    const subject = 'Email Verification';
-    const html = `<p>Please verify your email by clicking on the following link, it expires in five minutes: <a href="${verificationLink}">Verify Email</a></p>`;
+    const subject = 'Verify Your Email Address';
 
+    const html = `
+      <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #000; background-color: #fff; padding: 20px; border: 1px solid #730051; border-radius: 8px; max-width: 600px; margin: auto;">
+        <h1 style="color: #00c6ff; text-align: center;">Kisii University Christian Union</h1>
+        <h2 style="color: #730051; text-align: center; margin-top: -10px;">Main Campus</h2>
+        <p style="color: #000; font-size: 16px;">We're thrilled to have you join us! To get started, please verify your email address by clicking the button below.</p>
+        <p style="color: #000; font-size: 16px;">
+          <strong>Important:</strong> This link will expire in <span style="color: #730051; font-weight: bold;">1 hour</span>.
+        </p>
+        <div style="text-align: center; margin: 20px 0;">
+          <a href="${verificationLink}" 
+             style="display: inline-block; padding: 12px 24px; font-size: 16px; color: #fff; background-color: #730051; text-decoration: none; border-radius: 5px;">
+             Verify Email
+          </a>
+        </div>
+        <p style="color: #000; font-size: 14px;">If you did not request this email, you can safely ignore it.</p>
+        <p style="color: #730051; font-size: 14px; text-align: center; margin-top: 20px;">Thank you,<br><strong>The Kisii University Christian Union Dev Team</strong></p>
+      </div>
+    `;
+    
     await sendMail(email, subject, html);
+    
     res.status(201).json({ message: 'Verification email sent successfully!' });
   } catch (error) {
     res.status(500).json({ message: error });
@@ -64,7 +84,7 @@ exports.saveSoul = async (req,res) => {
 
 exports.countSaved = async (req,res) => {
   try {
-    const soulCount = await Soul.countDocuments();  // For MongoDB with Mongoose
+    const soulCount = await Soul.countDocuments(); 
     res.json({ count: soulCount });
   } catch (error) {
     res.status(500).json({ message: 'Error fetching user count' });
@@ -136,7 +156,7 @@ exports.verifyEmail = async (req, res) => {
       sameSite: 'None', // Required for cross-site cookies
     });
 
-    res.redirect(`https://ksucu-mc.co.ke`);
+    res.redirect(`http://localhost:5173`);
 
   } catch (error) {
     console.error('Error verifying email:', error.message);
@@ -182,10 +202,12 @@ exports.login = async (req, res) => {
 
 exports.forgetPassword = async (req, res) => {
   try {
-    const { email } = req.body;
+    let { email } = req.body;
     if (!email) {
       return res.status(400).json({ message: 'Email is required' });
     }
+
+    email = email.toLowerCase();
 
     const user = await User.findOne({ email });
     if (!user) {
@@ -198,13 +220,28 @@ exports.forgetPassword = async (req, res) => {
 
     const token = generateToken({ email });
 
-    const resetLink = `https://ksucu-mc.co.ke/reset?token=${token}`;
+    const resetLink = `${backendURL}/reset?token=${token}`;
 
     const subject = 'Password Reset';
-    const text = `Please reset your password by clicking on the following link: ${resetLink}`;
-    const html = `<p>Please reset your password by clicking on the following link, it expires in one hour: <a href="${resetLink}">Reset Password</a></p>`;
 
-    await sendMail(email, subject, text, html);
+    const html = `
+      <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #000; background-color: #fff; padding: 20px; border: 1px solid #730051; border-radius: 8px; max-width: 600px; margin: auto;">
+        <h1 style="color: #00c6ff; text-align: center;">Kisii University Christian Union</h1>
+        <h2 style="color: #730051; text-align: center; margin-top: -10px;">Main Campus</h2>
+        <p style="font-size: 16px;">We received a request to reset your password. If this was you, click the button below to proceed. The link will expire in <span style="color: #730051; font-weight: bold;">1 hour</span>.</p>
+        <div style="text-align: center; margin: 20px 0;">
+          <a href="${resetLink}" 
+             style="display: inline-block; padding: 12px 24px; font-size: 16px; color: #fff; background-color: #730051; text-decoration: none; border-radius: 5px;">
+             Reset Password
+          </a>
+        </div>
+        <p style="font-size: 14px;">If you didn’t request a password reset, you can safely ignore this email.</p>
+        <p style="color: #730051; font-size: 14px; text-align: center; margin-top: 20px;">Thank you,<br><strong>The Kisii University Christian Union Dev Team</strong></p>
+      </div>
+    `;
+    
+    await sendMail(email, subject, html);
+       
 
     res.status(200).json({ message: 'Password reset email sent successfully!' });
 
