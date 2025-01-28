@@ -318,6 +318,10 @@ exports.updateUserData = async (req, res) => {
 
     // Extract updated user details from request body
     const { username, email, yos, ministry, reg, et, course, phone } = req.body;
+    const existingUser = await User.findOne({ $or: [{ email }, { phone }, { reg }] });
+    if (existingUser) {
+      return res.status(400).json({ message: 'Email/Phone/REG already exists' });
+    }
 
     // Find the user by ID and update with the new details
     const updatedUser = await User.findByIdAndUpdate(
