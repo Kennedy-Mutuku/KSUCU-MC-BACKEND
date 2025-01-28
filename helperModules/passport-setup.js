@@ -32,19 +32,29 @@ passport.use(
 
         if (user) {
           // User already exists, return the user
+          console.log('user already exists');
+          
           return done(null, user);
         }
 
         // Check if the user already exists with the email
         user = await User.findOne({ email: profile.emails[0].value });
 
+        if(!user){
+          console.log('user not found');
+        }
+
         if (user) {
+          console.log('user available');
+          
           // If a user exists with the same email but a different Google ID, update the Google ID
           user.googleId = profile.id;
           await user.save();
           return done(null, user);
         }
 
+        console.log('creating user...');
+        
         // Create a new user if none exists with the same email
         user = new User({
           googleId: profile.id,
@@ -55,6 +65,8 @@ passport.use(
 
         done(null, user);
       } catch (err) {
+        console.log(err);
+        
         // Check for duplicate key error and handle it gracefully
         if (err.code === 11000) {
           // Duplicate key error
@@ -70,3 +82,4 @@ passport.use(
 );
 
 module.exports = passport;
+
