@@ -14,5 +14,6 @@ router.put('/update', userAuthMiddleware, userController.updateUserData);
 router.post('/logout', userAuthMiddleware, userController.logout)
 router.post('/forget-password', userController.forgetPassword);
 router.post('/reset-password', userController.resetPassword)
+router.post('/recomendations', userController.feedback)
 
 module.exports = router;

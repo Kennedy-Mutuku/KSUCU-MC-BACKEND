@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const User = require('../models/user');
 const Soul = require('../models/savedSouls')
 const bs = require('../models/biblestudy')
+const FeedBack = require('../models/feedbackSchema')
 const news = require('../models/adminNews')
 const { sendMail, generateToken } = require('../helperModules/sendmail');
 const backendURL = 'https://ksucu-mc.co.ke'
@@ -61,6 +62,42 @@ exports.signup = async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: error });
   }
+}
+
+exports.login = async (req, res) => {
+  try {
+    let { email, password } = req.body;
+    
+    email = email.toLowerCase();
+
+    if (!email || !password) {
+      return res.status(400).json({ message: 'Email and password are required' });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(401).json({ message: 'Invalid username or password' });
+    }
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      return res.status(401).json({ message: 'Invalid username or password' });
+    }
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_USER_SECRET, { expiresIn: '2h' });
+
+    res.cookie('user_s', token, {
+      httpOnly: true,
+      secure: true, // Set to true in production
+      maxAge: 3 * 60 * 60 * 1000, // 3 hours (match session maxAge)
+      sameSite: 'None', // Required for cross-site cookies
+    });
+
+    // Sending a success response
+     res.status(200).json({ message: 'Login successful' });
+    
+  } catch (error) {
+    res.status(500).json({ message: error });
+  }
+  
 }
 
 exports.saveSoul = async (req,res) => {
@@ -162,42 +199,6 @@ exports.verifyEmail = async (req, res) => {
     console.error('Error verifying email:', error.message);
     res.status(400).send('Invalid or expired verification token');
   }
-}
-
-exports.login = async (req, res) => {
-  try {
-    let { email, password } = req.body;
-    
-    email = email.toLowerCase();
-
-    if (!email || !password) {
-      return res.status(400).json({ message: 'Email and password are required' });
-    }
-
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(401).json({ message: 'Invalid username or password' });
-    }
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) {
-      return res.status(401).json({ message: 'Invalid username or password' });
-    }
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_USER_SECRET, { expiresIn: '2h' });
-
-    res.cookie('user_s', token, {
-      httpOnly: true,
-      secure: true, // Set to true in production
-      maxAge: 3 * 60 * 60 * 1000, // 3 hours (match session maxAge)
-      sameSite: 'None', // Required for cross-site cookies
-    });
-
-    // Sending a success response
-     res.status(200).json({ message: 'Login successful' });
-    
-  } catch (error) {
-    res.status(500).json({ message: error });
-  }
-  
 }
 
 exports.forgetPassword = async (req, res) => {
@@ -311,7 +312,6 @@ exports.getUserData = async (req, res) => {
   }
 };
 
-
 exports.updateUserData = async (req, res) => {
   try {
     const userId = req.userId; // Extract user ID from authentication middleware
@@ -347,3 +347,26 @@ exports.logout = async (req, res) => {
   }
 };
 
+exports.feedback = async (req, res) => {
+  try {
+
+      const userId = req.userId; 
+      
+      const user = await User.findById(userId);
+
+      let { anonymous, name, message } = req.body;
+
+      if (!anonymous){
+        name = user.username;
+      }
+
+      const feedback = new FeedBack({ anonymous, name, message });
+      await feedback.save();
+      
+      res.status(201).json({ message: 'Feedback submitted successfully' });
+  } catch (error) {
+    console.log(error);
+    
+      res.status(500).json({ error: 'Server error' });
+  }
+};

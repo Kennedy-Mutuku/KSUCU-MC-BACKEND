@@ -5,6 +5,7 @@ const userRoutes = require('./routes/userRoutes');
 const newsAdminRoutes = require('./routes/newsRoutes')
 const missionAdminRoutes = require('./routes/missionRoutes')
 const bsAdminRoutes = require('./routes/bsRoutes')
+const superAdminRoutes = require('./routes/superAdminRoutes')
 const session = require('express-session');
 require('dotenv').config();
 const fs = require('fs');
@@ -57,6 +58,7 @@ app.use('/users', userRoutes);
 app.use('/adminnews', newsAdminRoutes);
 app.use('/adminmission', missionAdminRoutes);
 app.use('/adminBs', bsAdminRoutes);
+app.use('/sadmin', superAdminRoutes);
 
 // Serve uploaded files statically
 app.use('/uploads', express.static('uploads'));
