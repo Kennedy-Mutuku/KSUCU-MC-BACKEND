@@ -68,9 +68,18 @@ exports.logout = (req, res) => {
 };
 
 // Get all users for frontend
+// exports.getUsers = async (req, res) => {
+//     try {
+//         const users = await Users.find({}, '-_id name yos'); 
+//         res.status(200).json(users);
+//     } catch (error) {
+//         res.status(500).json({ message: 'Error fetching users', error });
+//     }
+// };
+
 exports.getUsers = async (req, res) => {
     try {
-        const users = await Users.find({}, '-_id name yos'); // Fetch only necessary fields
+        const users = await Users.find({}, { _id: 0, password: 0, googleId: 0 }); 
         res.status(200).json(users);
     } catch (error) {
         res.status(500).json({ message: 'Error fetching users', error });
@@ -86,4 +95,5 @@ exports.getFeedback = async (req, res) => {
         res.status(500).json({ message: 'Error fetching feedback', error });
     }
 };
+
 
