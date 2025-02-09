@@ -28,9 +28,6 @@ if (!fs.existsSync(uploadDir)) {
 const corsOptions = {
     origin: function(origin, callback) {
       const allowedOrigins = [
-        'http://localhost:3000',
-        'http://localhost:5174',
-        'http://localhost:5173',
         'https://www.ksucu-mc.co.ke',
         'https://ksucu-mc.co.ke',
       ];
