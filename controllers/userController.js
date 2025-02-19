@@ -60,6 +60,8 @@ exports.signup = async (req, res) => {
     
     res.status(201).json({ message: 'Verification email sent successfully!' });
   } catch (error) {
+    console.log(error);
+    
     res.status(500).json({ message: error });
   }
 }
@@ -76,17 +78,20 @@ exports.login = async (req, res) => {
 
     const user = await User.findOne({ email });
     if (!user) {
+      console.log('invalid username');
+      
       return res.status(401).json({ message: 'Invalid username or password' });
     }
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
+      console.log('invalid pswd');
       return res.status(401).json({ message: 'Invalid username or password' });
     }
     const token = jwt.sign({ userId: user._id }, process.env.JWT_USER_SECRET, { expiresIn: '2h' });
 
     res.cookie('user_s', token, {
       httpOnly: true,
-      secure: true, // Set to true in production
+      secure: false, // Set to true in production
       maxAge: 3 * 60 * 60 * 1000, // 3 hours (match session maxAge)
       sameSite: 'None', // Required for cross-site cookies
     });
@@ -95,6 +100,8 @@ exports.login = async (req, res) => {
      res.status(200).json({ message: 'Login successful' });
     
   } catch (error) {
+    console.log(error);
+    
     res.status(500).json({ message: error });
   }
   
