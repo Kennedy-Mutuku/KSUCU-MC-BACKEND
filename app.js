@@ -6,6 +6,7 @@ const newsAdminRoutes = require('./routes/newsRoutes')
 const missionAdminRoutes = require('./routes/missionRoutes')
 const bsAdminRoutes = require('./routes/bsRoutes')
 const superAdminRoutes = require('./routes/superAdminRoutes')
+const commitmentRoutes = require('./routes/commitmentRoute.js')
 const session = require('express-session');
 require('dotenv').config();
 const fs = require('fs');
@@ -13,24 +14,27 @@ const cors = require('cors')
 const cookieParser = require ('cookie-parser');
 const passport = require('passport')
 require('./helperModules/passport-setup.js');
-const app = express();
-app.use(express.json());
-app.use(express.urlencoded({extended:true}));
-app.use(cookieParser());
 const dbuser = require('./models/user.js')
 const jwt = require('jsonwebtoken');
+
 // Ensure the 'uploads' folder exists
 const uploadDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
 }
 
+const app = express();
+
+app.use(express.json({ limit: "10mb" })); 
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+app.use(cookieParser());
+
 const corsOptions = {
     origin: function(origin, callback) {
-      const allowedOrigins = [
-        'https://www.ksucu-mc.co.ke',
-        'https://ksucu-mc.co.ke',
-      ];
+      const allowedOrigins = process.env.NODE_ENV === 'development'
+      ? ['http://localhost:5173']
+      : ['https://www.ksucu-mc.co.ke', 'https://ksucu-mc.co.ke'];
+  
       if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
         // Allow requests from the allowed origins or from no origin (e.g., non-browser clients)
         callback(null, true);
@@ -56,6 +60,7 @@ app.use('/adminnews', newsAdminRoutes);
 app.use('/adminmission', missionAdminRoutes);
 app.use('/adminBs', bsAdminRoutes);
 app.use('/sadmin', superAdminRoutes);
+app.use('/commitmentForm', commitmentRoutes);
 
 // Serve uploaded files statically
 app.use('/uploads', express.static('uploads'));
@@ -124,4 +129,5 @@ if(process.env.NODE_ENV === 'production'){
 }
 
 const PORT = process.env.PORT || 3000;
+
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
