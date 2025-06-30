@@ -5,15 +5,22 @@ const path = require('path');
 const User = require('../models/adminNews'); // Adjust the path to your model
 const fs = require('fs');
 
+// Dynamic upload directory based on environment
+const uploadDir = process.env.NODE_ENV === 'production'
+  ? '/var/www/uploads'
+  : path.join(__dirname, '..', 'uploads');
+
+
 // Multer configuration for file uploads
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        cb(null, 'uploads/');
+        cb(null, uploadDir);
     },
     filename: function (req, file, cb) {
         cb(null, Date.now() + path.extname(file.originalname)); // Save file with current timestamp
     }
 });
+
 
 const upload = multer({ storage: storage }).single('image');
 

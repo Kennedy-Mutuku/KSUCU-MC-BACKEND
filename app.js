@@ -18,10 +18,19 @@ const dbuser = require('./models/user.js')
 const jwt = require('jsonwebtoken');
 
 // Ensure the 'uploads' folder exists
-const uploadDir = path.join(__dirname, 'uploads');
+let uploadDir;
+
+if (process.env.NODE_ENV === 'production') {
+    uploadDir = '/var/www/uploads';
+} else {
+    uploadDir = path.join(__dirname, 'uploads');
+}
+
+// Ensure the upload directory exists
 if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
 }
+
 
 const app = express();
 
@@ -63,7 +72,12 @@ app.use('/sadmin', superAdminRoutes);
 app.use('/commitmentForm', commitmentRoutes);
 
 // Serve uploaded files statically
-app.use('/uploads', express.static('uploads'));
+if (process.env.NODE_ENV === 'production') {
+    app.use('/uploads', express.static('/var/www/uploads'));
+} else {
+    app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+}
+
 
 // Google OAuth Routes
 app.get('/auth/google', passport.authenticate('google', {
