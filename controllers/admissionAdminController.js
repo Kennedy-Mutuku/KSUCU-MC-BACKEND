@@ -148,16 +148,16 @@ exports.resetUserPassword = async (req, res) => {
 // Create admission admin (for initial setup)
 exports.createAdmin = async (req, res) => {
     try {
-        const { email, password } = req.body;
+        const { email, password, phone } = req.body;
         
-        if (!email || !password) {
-            return res.status(400).json({ message: 'Email and password are required' });
+        if (!email || !password || !phone) {
+            return res.status(400).json({ message: 'Email, password, and phone are required' });
         }
 
         // Check if admin already exists
-        const existingAdmin = await AdmissionAdmin.findOne({ email });
+        const existingAdmin = await AdmissionAdmin.findOne({ $or: [{ email }, { phone }] });
         if (existingAdmin) {
-            return res.status(400).json({ message: 'Admin already exists' });
+            return res.status(400).json({ message: 'Admin with this email or phone already exists' });
         }
 
         // Hash password
@@ -166,7 +166,8 @@ exports.createAdmin = async (req, res) => {
         // Create new admin
         const newAdmin = new AdmissionAdmin({
             email,
-            password: hashedPassword
+            password: hashedPassword,
+            phone
         });
 
         await newAdmin.save();
