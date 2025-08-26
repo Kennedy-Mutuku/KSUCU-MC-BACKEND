@@ -4,6 +4,7 @@ const admissionAdminController = require('../controllers/admissionAdminControlle
 const admissionAdminMiddleware = require('../middlewares/admissionAdminMiddleware');
 
 router.post('/login', admissionAdminController.login);
+router.post('/create-admin', admissionAdminController.createAdmin);
 router.post('/admit-user', admissionAdminMiddleware, admissionAdminController.admitUser);
 router.get('/users', admissionAdminMiddleware, admissionAdminController.getAllUsers);
 router.post('/reset-password', admissionAdminMiddleware, admissionAdminController.resetUserPassword);

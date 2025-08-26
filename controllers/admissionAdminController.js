@@ -144,3 +144,37 @@ exports.resetUserPassword = async (req, res) => {
         res.status(500).json({ message: 'Error resetting password', error });
     }
 };
+
+// Create admission admin (for initial setup)
+exports.createAdmin = async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        
+        if (!email || !password) {
+            return res.status(400).json({ message: 'Email and password are required' });
+        }
+
+        // Check if admin already exists
+        const existingAdmin = await AdmissionAdmin.findOne({ email });
+        if (existingAdmin) {
+            return res.status(400).json({ message: 'Admin already exists' });
+        }
+
+        // Hash password
+        const hashedPassword = await bcrypt.hash(password, 10);
+        
+        // Create new admin
+        const newAdmin = new AdmissionAdmin({
+            email,
+            password: hashedPassword
+        });
+
+        await newAdmin.save();
+        
+        res.status(201).json({ message: 'Admission admin created successfully' });
+        
+    } catch (error) {
+        console.log('Error creating admin:', error);
+        res.status(500).json({ message: 'Error creating admin', error });
+    }
+};
