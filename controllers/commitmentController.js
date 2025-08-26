@@ -1,4 +1,3 @@
-const { use } = require("passport");
 const Commitment = require("../models/commitment");
 const User = require("../models/user");
 const commitment = require("../models/commitment");

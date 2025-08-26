@@ -8,63 +8,6 @@ const news = require('../models/adminNews')
 const { sendMail, generateToken } = require('../helperModules/sendmail');
 const backendURL = 'https://ksucu-mc.co.ke'
 
-exports.signup = async (req, res) => {
-  try {
-    const { username, password, email, yos, et, phone, ministry, course, reg } = req.body;
-    const existingUser = await User.findOne({ $or: [{ email }, { phone }, { reg }] });
-    if (existingUser) {
-      return res.status(400).json({ message: 'Email/Phone/REG already exists' });
-    }
-
-    if (!username || !password || !email || !phone  || !et || !yos || !reg || !ministry || !course) {
-      return res.status(401).json({ message: 'All fields are required' });
-    }
-
-    console.log(
-      username,
-      password,
-      phone,
-      ministry,
-      reg,
-      et,
-      yos,
-      email,
-      course
-    );
-
-    const token = generateToken({ username, password, email, phone, et, yos, reg, ministry, course });
-    const verificationLink = `${backendURL}/users/verify-email?token=${token}`;
-
-    const subject = 'Verify Your Email Address';
-
-    const html = `
-      <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #000; background-color: #fff; padding: 20px; border: 1px solid #730051; border-radius: 8px; max-width: 600px; margin: auto;">
-        <h1 style="color: #00c6ff; text-align: center;">Kisii University Christian Union</h1>
-        <h2 style="color: #730051; text-align: center; margin-top: -10px;">Main Campus</h2>
-        <p style="color: #000; font-size: 16px;">We're thrilled to have you join us! To get started, please verify your email address by clicking the button below.</p>
-        <p style="color: #000; font-size: 16px;">
-          <strong>Important:</strong> This link will expire in <span style="color: #730051; font-weight: bold;">1 hour</span>.
-        </p>
-        <div style="text-align: center; margin: 20px 0;">
-          <a href="${verificationLink}" 
-             style="display: inline-block; padding: 12px 24px; font-size: 16px; color: #fff; background-color: #730051; text-decoration: none; border-radius: 5px;">
-             Verify Email
-          </a>
-        </div>
-        <p style="color: #000; font-size: 14px;">If you did not request this email, you can safely ignore it.</p>
-        <p style="color: #730051; font-size: 14px; text-align: center; margin-top: 20px;">Thank you,<br><strong>The Kisii University Christian Union Dev Team</strong></p>
-      </div>
-    `;
-    
-    await sendMail(email, subject, html);
-    
-    res.status(201).json({ message: 'Verification email sent successfully!' });
-  } catch (error) {
-    console.log(error);
-    
-    res.status(500).json({ message: error });
-  }
-}
 
 exports.login = async (req, res) => {
   try {
@@ -91,9 +34,9 @@ exports.login = async (req, res) => {
 
     res.cookie('user_s', token, {
       httpOnly: true,
-      secure: false, // Set to true in production
+      secure: process.env.NODE_ENV === 'production',
       maxAge: 3 * 60 * 60 * 1000, // 3 hours (match session maxAge)
-      sameSite: 'None', // Required for cross-site cookies
+      sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax',
     });
 
     // Sending a success response
@@ -153,60 +96,6 @@ exports.bibleStudy = async (req,res) => {
   }
 }
 
-exports.verifyEmail = async (req, res) => {
-  let { token } = req.query;
-
-  if (!token) {
-    return res.status(400).send('Verification token is required');
-  }
-
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_USER_SECRET);
-    let { username, password, email, phone, et, yos, reg, ministry, course } = decoded;
-
-    console.log(course);
-    
-
-    email = email.toLowerCase();
-
-    if (!password) {
-      throw new Error('Password is missing from the token payload');
-    }
-
-    console.log('Decoded token payload:', decoded);
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = new User({
-      username,
-      password: hashedPassword,
-      email,
-      et,
-      phone,
-      yos,
-      reg,
-      course,
-      ministry
-    });
-
-    await newUser.save();
-
-    const user = await User.findOne({ email });
-    token = jwt.sign({ userId: user._id }, process.env.JWT_USER_SECRET, { expiresIn: '5m' });
-
-    res.cookie('user_s', token, {
-      httpOnly: true,
-      secure: true, // Set to true in production
-      maxAge: 3 * 60 * 60 * 1000, // 3 hours (match session maxAge)
-      sameSite: 'None', // Required for cross-site cookies
-    });
-
-    res.redirect('https://ksucu-mc.co.ke');
-
-  } catch (error) {
-    console.error('Error verifying email:', error.message);
-    res.status(400).send('Invalid or expired verification token');
-  }
-}
 
 exports.forgetPassword = async (req, res) => {
   try {
@@ -222,9 +111,6 @@ exports.forgetPassword = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    if(user && user.googleId){
-      return res.status(404).json({ message: 'erroo895423456' });
-    }
 
     const token = generateToken({ email });
 
@@ -324,12 +210,22 @@ exports.updateUserData = async (req, res) => {
     const userId = req.userId; // Extract user ID from authentication middleware
 
     // Extract updated user details from request body
-    const { username, email, yos, ministry, reg, et, course, phone } = req.body;
+    const { username, email, yos, ministry, reg, et, course, phone, password } = req.body;
+
+    // Prepare update data
+    const updateData = { username, email, yos, ministry, reg, et, course, phone };
+
+    // If password is provided, hash it and include in update
+    if (password && password.trim() !== '') {
+      console.log('Updating password for user:', userId);
+      const hashedPassword = await bcrypt.hash(password, 10);
+      updateData.password = hashedPassword;
+    }
 
     // Find the user by ID and update with the new details
     const updatedUser = await User.findByIdAndUpdate(
       userId,
-      { username, email, yos, ministry, reg, et, course, phone },
+      updateData,
       { new: true } // Return the updated document
     );
 
@@ -337,8 +233,13 @@ exports.updateUserData = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    res.status(200).json({ message: 'User details updated successfully' });
+    const message = password && password.trim() !== '' 
+      ? 'User details and password updated successfully' 
+      : 'User details updated successfully';
+    
+    res.status(200).json({ message });
   } catch (error) {
+    console.log('Error updating user:', error);
     res.status(500).json({ message: error });
   }
 };
@@ -346,7 +247,11 @@ exports.updateUserData = async (req, res) => {
 exports.logout = async (req, res) => {
   try {
     res.clearCookie('token'); 
-    res.clearCookie('user_s'); 
+    res.clearCookie('user_s', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax'
+    }); 
     return res.status(200).json({ message: 'Logout successful' });
   } catch (error) {
     console.error('Error during logout:', error);

@@ -3,9 +3,7 @@ const router = express.Router();
 const userController = require('../controllers/userController');
 const userAuthMiddleware = require('../middlewares/userAuthMiddleware')
 
-router.post('/signup', userController.signup);
 router.post('/login', userController.login);
-router.get('/verify-email', userController.verifyEmail);
 router.post('/save-soul', userAuthMiddleware, userController.saveSoul);
 router.post('/bibleStudy', userController.bibleStudy);
 router.get('/countSaved', userController.countSaved);
