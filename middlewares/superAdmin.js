@@ -2,10 +2,10 @@ const jwt = require('jsonwebtoken');
 const pkg = require('jsonwebtoken');
 const { verify } = pkg;
 
-const secretKey = process.env.JWT_USER_SECRET;
+const secretKey = process.env.JWT_ADMIN_SECRET;
 
 module.exports = (req, res, next) => {
-  const token = req.cookies.bs_token;
+  const token = req.cookies.sadmin_token;
   
   if (!token) {
     console.log('no token provided');

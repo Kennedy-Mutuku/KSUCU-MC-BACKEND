@@ -32,23 +32,30 @@ exports.signup = async (req, res) => {
 exports.login = async (req, res) => {
     try {
         const { email, password } = req.body;
+        console.log('Super Admin Login attempt - Email:', email);
+        
         if (!email || !password) {
             return res.status(400).json({ message: 'Email and password are required' });
         }
 
         const user = await sAdmin.findOne({ email });
         if (!user) {
+            console.log('Super Admin not found with email:', email);
             return res.status(401).json({ message: 'Invalid username or password' });
         }
 
+        console.log('Super Admin found, checking password...');
         const isPasswordValid = await bcrypt.compare(password, user.password);
         if (!isPasswordValid) {
+            console.log('Invalid password for super admin:', email);
             return res.status(401).json({ message: 'Invalid username or password' });
         }
+        
+        console.log('Super Admin login successful for:', email);
 
-        const token = jwt.sign({ userId: user._id }, process.env.JWT_USER_SECRET, { expiresIn: '1h' });
+        const token = jwt.sign({ userId: user._id }, process.env.JWT_ADMIN_SECRET, { expiresIn: '1h' });
 
-        res.cookie('bs_token', token, {
+        res.cookie('sadmin_token', token, {
             httpOnly: true,
             secure: true,
             maxAge: 1 * 60 * 60 * 1000,
@@ -63,7 +70,7 @@ exports.login = async (req, res) => {
 
 // User logout
 exports.logout = (req, res) => {
-    res.clearCookie('bs_token', { httpOnly: true, secure: true, sameSite: 'None' });
+    res.clearCookie('sadmin_token', { httpOnly: true, secure: true, sameSite: 'None' });
     res.status(200).json({ message: 'Logout successful' });
 };
 
