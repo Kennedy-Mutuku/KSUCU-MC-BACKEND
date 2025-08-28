@@ -8,6 +8,7 @@ const bsAdminRoutes = require('./routes/bsRoutes')
 const superAdminRoutes = require('./routes/superAdminRoutes')
 const admissionAdminRoutes = require('./routes/admissionAdminRoutes')
 const commitmentRoutes = require('./routes/commitmentRoute.js')
+const attendanceRoutes = require('./routes/attendanceRoutes')
 require('dotenv').config();
 const fs = require('fs');
 const cors = require('cors')
@@ -67,6 +68,7 @@ app.use('/adminBs', bsAdminRoutes);
 app.use('/sadmin', superAdminRoutes);
 app.use('/admissionadmin', admissionAdminRoutes);
 app.use('/commitmentForm', commitmentRoutes);
+app.use('/attendance', attendanceRoutes);
 
 // Serve uploaded files statically
 if (process.env.NODE_ENV === 'production') {
