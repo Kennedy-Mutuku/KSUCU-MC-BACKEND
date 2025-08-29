@@ -37,14 +37,19 @@ app.use(cookieParser());
 
 const corsOptions = {
     origin: function(origin, callback) {
+      console.log(`🌐 CORS Request from origin: "${origin}", NODE_ENV: "${process.env.NODE_ENV}"`);
+      
       const allowedOrigins = process.env.NODE_ENV === 'development'
-      ? ['http://localhost:5173','http://localhost:5175'] // Add your development origins here
+      ? ['http://localhost:5173','http://localhost:5174','http://localhost:5175'] // Add your development origins here
       : ['https://www.ksucu-mc.co.ke', 'https://ksucu-mc.co.ke'];
+      
+      console.log(`✅ Allowed origins:`, allowedOrigins);
   
       if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
-        // Allow requests from the allowed origins or from no origin (e.g., non-browser clients)
+        console.log(`✅ CORS allowed for origin: ${origin}`);
         callback(null, true);
       } else {
+        console.log(`❌ CORS blocked for origin: ${origin}`);
         callback(new Error('Not allowed by CORS'));
       }
     },
