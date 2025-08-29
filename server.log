@@ -1,0 +1,24 @@
+
+> banking_app@1.0.0 start
+> node app.js
+
+(node:139857) [MONGOOSE] DeprecationWarning: Mongoose: the `strictQuery` option will be switched back to `false` by default in Mongoose 7. Use `mongoose.set('strictQuery', false);` if you want to prepare for this change. Or use `mongoose.set('strictQuery', true);` to suppress this warning.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+Server running on port 3000
+Error getting session: MongooseError: Operation `attendancesessions.findOne()` buffering timed out after 10000ms
+    at Timeout.<anonymous> (/home/ken/KSUCU Website /KSUCU-MC-BACKEND/node_modules/mongoose/lib/drivers/node-mongodb-native/collection.js:188:23)
+    at listOnTimeout (node:internal/timers:569:17)
+    at process.processTimers (node:internal/timers:512:7)
+Error getting session: MongooseError: Operation `attendancesessions.findOne()` buffering timed out after 10000ms
+    at Timeout.<anonymous> (/home/ken/KSUCU Website /KSUCU-MC-BACKEND/node_modules/mongoose/lib/drivers/node-mongodb-native/collection.js:188:23)
+    at listOnTimeout (node:internal/timers:569:17)
+    at process.processTimers (node:internal/timers:512:7)
+connect ECONNREFUSED ::1:27017
+Error opening session: MongooseError: Operation `attendancesessions.findOne()` buffering timed out after 10000ms
+    at Timeout.<anonymous> (/home/ken/KSUCU Website /KSUCU-MC-BACKEND/node_modules/mongoose/lib/drivers/node-mongodb-native/collection.js:188:23)
+    at listOnTimeout (node:internal/timers:569:17)
+    at process.processTimers (node:internal/timers:512:7)
+Error getting session: MongooseError: Operation `attendancesessions.findOne()` buffering timed out after 10000ms
+    at Timeout.<anonymous> (/home/ken/KSUCU Website /KSUCU-MC-BACKEND/node_modules/mongoose/lib/drivers/node-mongodb-native/collection.js:188:23)
+    at listOnTimeout (node:internal/timers:569:17)
+    at process.processTimers (node:internal/timers:512:7)

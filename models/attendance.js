@@ -4,7 +4,11 @@ const attendanceSessionSchema = new mongoose.Schema({
     ministry: {
         type: String,
         required: true,
-        enum: ['Praise and Worship', 'Choir', 'Wananzambe', 'Ushering', 'Creativity', 'Compassion', 'Intercessory', 'High School', 'Church School']
+        enum: ['Praise and Worship', 'Choir', 'Wananzambe', 'Ushering', 'Creativity', 'Compassion', 'Intercessory', 'High School', 'Church School', 'General']
+    },
+    leadershipRole: {
+        type: String,
+        required: true
     },
     isActive: {
         type: Boolean,

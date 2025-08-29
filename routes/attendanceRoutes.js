@@ -268,4 +268,148 @@ router.get('/sessions/:ministry', async (req, res) => {
     }
 });
 
+// ==== NEW SESSION MANAGEMENT ENDPOINTS FOR CROSS-DEVICE FUNCTIONALITY ====
+
+// Get current active session status (for cross-device checking)
+router.get('/session/status', async (req, res) => {
+    try {
+        // Find any active session (only one can be active at a time)
+        const activeSession = await AttendanceSession.findOne({ isActive: true });
+        
+        if (!activeSession) {
+            return res.json({
+                message: 'No active session',
+                session: null
+            });
+        }
+        
+        res.json({
+            message: 'Active session found',
+            session: {
+                _id: activeSession._id,
+                leadershipRole: activeSession.leadershipRole,
+                ministry: activeSession.ministry,
+                isActive: activeSession.isActive,
+                startTime: activeSession.startTime,
+                attendanceCount: activeSession.attendanceCount
+            }
+        });
+        
+    } catch (error) {
+        console.error('Error checking session status:', error);
+        res.status(500).json({ 
+            message: 'Error checking session status',
+            error: error.message 
+        });
+    }
+});
+
+// Open new centralized session (admin only)
+router.post('/session/open', async (req, res) => {
+    try {
+        const { leadershipRole, ministry = 'General' } = req.body;
+        
+        if (!leadershipRole) {
+            return res.status(400).json({ message: 'Leadership role is required' });
+        }
+        
+        // Check if there's already an active session (only one allowed at a time)
+        const existingSession = await AttendanceSession.findOne({ isActive: true });
+        
+        if (existingSession) {
+            return res.status(409).json({ 
+                message: 'Another session is already active',
+                activeSession: {
+                    leadershipRole: existingSession.leadershipRole,
+                    startTime: existingSession.startTime
+                }
+            });
+        }
+        
+        // Create new session
+        const session = new AttendanceSession({
+            ministry,
+            leadershipRole,
+            isActive: true,
+            startTime: new Date()
+        });
+        
+        await session.save();
+        
+        console.log(`✅ Session opened by ${leadershipRole} for ${ministry} ministry`);
+        
+        res.status(201).json({
+            message: 'Session opened successfully',
+            session: {
+                _id: session._id,
+                leadershipRole: session.leadershipRole,
+                ministry: session.ministry,
+                isActive: session.isActive,
+                startTime: session.startTime
+            }
+        });
+        
+    } catch (error) {
+        console.error('Error opening session:', error);
+        res.status(500).json({ 
+            message: 'Error opening session',
+            error: error.message 
+        });
+    }
+});
+
+// Close active session (admin only)
+router.post('/session/close', async (req, res) => {
+    try {
+        const { leadershipRole, totalAttendees } = req.body;
+        
+        if (!leadershipRole) {
+            return res.status(400).json({ message: 'Leadership role is required' });
+        }
+        
+        // Find the active session for this leader
+        const session = await AttendanceSession.findOne({ 
+            isActive: true,
+            leadershipRole: leadershipRole 
+        });
+        
+        if (!session) {
+            return res.status(404).json({ 
+                message: 'No active session found for your leadership role' 
+            });
+        }
+        
+        // Close the session
+        session.isActive = false;
+        session.endTime = new Date();
+        if (totalAttendees !== undefined) {
+            session.attendanceCount = totalAttendees;
+        }
+        
+        await session.save();
+        
+        console.log(`🔒 Session closed by ${leadershipRole} - ${session.attendanceCount} attendees`);
+        
+        res.json({
+            message: 'Session closed successfully',
+            session: {
+                _id: session._id,
+                leadershipRole: session.leadershipRole,
+                ministry: session.ministry,
+                isActive: session.isActive,
+                startTime: session.startTime,
+                endTime: session.endTime,
+                attendanceCount: session.attendanceCount
+            }
+        });
+        
+    } catch (error) {
+        console.error('Error closing session:', error);
+        res.status(500).json({ 
+            message: 'Error closing session',
+            error: error.message 
+        });
+    }
+});
+
 module.exports = router;
