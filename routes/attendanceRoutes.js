@@ -199,6 +199,16 @@ router.post('/sign-anonymous', async (req, res) => {
     try {
         const { sessionId, ministry, name, regNo, year, phoneNumber, signature } = req.body;
         
+        console.log('📝 Received anonymous attendance submission:', {
+            sessionId,
+            ministry,
+            name,
+            regNo,
+            year,
+            hasPhoneNumber: !!phoneNumber,
+            hasSignature: !!signature
+        });
+        
         if (!sessionId || !ministry || !name || !regNo || !year) {
             return res.status(400).json({ 
                 message: 'Session ID, ministry, name, registration number, and year are required' 
@@ -250,6 +260,8 @@ router.post('/sign-anonymous', async (req, res) => {
         await session.save();
         
         console.log(`📝 Anonymous attendance signed: ${name} (${regNo}) for ${ministry}`);
+        console.log(`   Session ID: ${sessionId}`);
+        console.log(`   Total attendees in session: ${session.attendanceCount}`);
         
         res.json({
             message: 'Attendance signed successfully',
@@ -260,7 +272,8 @@ router.post('/sign-anonymous', async (req, res) => {
                 year: attendanceRecord.year,
                 phoneNumber: attendanceRecord.phoneNumber,
                 ministry: attendanceRecord.ministry,
-                signedAt: attendanceRecord.signedAt
+                signedAt: attendanceRecord.signedAt,
+                signature: attendanceRecord.signature
             }
         });
         
@@ -362,12 +375,35 @@ router.get('/records/:sessionId', async (req, res) => {
     try {
         const { sessionId } = req.params;
         
+        console.log(`📊 Fetching attendance records for session: ${sessionId}`);
+        
+        // Validate session ID format
+        if (!sessionId || sessionId === 'undefined' || sessionId === 'null') {
+            return res.status(400).json({ 
+                message: 'Invalid session ID',
+                sessionId 
+            });
+        }
+        
         const records = await AttendanceRecord.find({ sessionId })
             .populate('userId', 'username email')
             .sort({ signedAt: 1 });
+        
+        console.log(`✅ Found ${records.length} attendance records for session ${sessionId}`);
+        
+        // Log first few records for debugging
+        if (records.length > 0) {
+            console.log('Sample records:', records.slice(0, 3).map(r => ({
+                name: r.userName,
+                regNo: r.regNo,
+                signedAt: r.signedAt
+            })));
+        }
             
         res.json({
-            records
+            records,
+            count: records.length,
+            sessionId
         });
         
     } catch (error) {
