@@ -24,6 +24,10 @@ const attendanceSessionSchema = new mongoose.Schema({
     attendanceCount: {
         type: Number,
         default: 0
+    },
+    forcedClosedBy: {
+        type: String,
+        required: false // Only set if session was forcefully closed
     }
 }, {
     timestamps: true

@@ -509,4 +509,56 @@ router.post('/session/close', async (req, res) => {
     }
 });
 
+// Force close any active session (emergency override)
+router.post('/session/force-close', async (req, res) => {
+    try {
+        const { newLeadershipRole } = req.body;
+        
+        if (!newLeadershipRole) {
+            return res.status(400).json({ message: 'New leadership role is required' });
+        }
+        
+        // Find any active session
+        const activeSession = await AttendanceSession.findOne({ isActive: true });
+        
+        if (!activeSession) {
+            return res.status(404).json({ 
+                message: 'No active session found to close' 
+            });
+        }
+        
+        const oldLeadershipRole = activeSession.leadershipRole;
+        
+        // Force close the session
+        activeSession.isActive = false;
+        activeSession.endTime = new Date();
+        activeSession.forcedClosedBy = newLeadershipRole;
+        
+        await activeSession.save();
+        
+        console.log(`⚠️ Session forcefully closed by ${newLeadershipRole} - was owned by ${oldLeadershipRole} - ${activeSession.attendanceCount} attendees`);
+        
+        res.json({
+            message: `Session forcefully closed. Previous session by ${oldLeadershipRole} has been terminated.`,
+            closedSession: {
+                _id: activeSession._id,
+                leadershipRole: oldLeadershipRole,
+                ministry: activeSession.ministry,
+                isActive: false,
+                startTime: activeSession.startTime,
+                endTime: activeSession.endTime,
+                attendanceCount: activeSession.attendanceCount,
+                forcedClosedBy: newLeadershipRole
+            }
+        });
+        
+    } catch (error) {
+        console.error('Error force closing session:', error);
+        res.status(500).json({ 
+            message: 'Error force closing session',
+            error: error.message 
+        });
+    }
+});
+
 module.exports = router;
