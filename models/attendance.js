@@ -38,7 +38,7 @@ const attendanceRecordSchema = new mongoose.Schema({
     userId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
-        required: true
+        required: false // Allow null for anonymous attendance
     },
     userName: {
         type: String,
@@ -56,6 +56,14 @@ const attendanceRecordSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    phoneNumber: {
+        type: String,
+        required: false
+    },
+    signature: {
+        type: String,
+        required: false
+    },
     signedAt: {
         type: Date,
         default: Date.now
@@ -64,8 +72,8 @@ const attendanceRecordSchema = new mongoose.Schema({
     timestamps: true
 });
 
-// Ensure a user can only sign once per session
-attendanceRecordSchema.index({ sessionId: 1, userId: 1 }, { unique: true });
+// Ensure a registration number can only sign once per session
+attendanceRecordSchema.index({ sessionId: 1, regNo: 1 }, { unique: true });
 
 const AttendanceSession = mongoose.model('AttendanceSession', attendanceSessionSchema);
 const AttendanceRecord = mongoose.model('AttendanceRecord', attendanceRecordSchema);

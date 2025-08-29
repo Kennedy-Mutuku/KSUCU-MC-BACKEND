@@ -52,13 +52,17 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 
-mongoose.connect(process.env.DB_CONNECTION_URI, {
+const dbUri = process.env.DB_CONNECTION_URI || 'mongodb://127.0.0.1:27017/ksucu-mc';
+console.log('Attempting to connect to MongoDB at:', dbUri);
+
+mongoose.connect(dbUri, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 }).then(()=>{
-    console.log('db connected succesfully');
+    console.log('MongoDB connected successfully');
 }).catch((err)=>{
-    console.log(err.message);
+    console.error('MongoDB connection error:', err.message);
+    console.error('Full error:', err);
 });
 
 app.use('/users', userRoutes);
