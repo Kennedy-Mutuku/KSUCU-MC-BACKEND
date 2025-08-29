@@ -194,7 +194,7 @@ router.post('/sign', verifyToken, async (req, res) => {
             sessionId,
             userId: req.user.id,
             userName: user.username,
-            regNo: user.regNo || 'N/A',
+            regNo: user.reg || 'N/A',
             year: user.year || 1,
             ministry,
             signedAt: new Date()
@@ -271,7 +271,7 @@ router.get('/sessions/:ministry', async (req, res) => {
 // ==== NEW SESSION MANAGEMENT ENDPOINTS FOR CROSS-DEVICE FUNCTIONALITY ====
 
 // Get current active session status (for cross-device checking)
-router.get('/session/status', async (req, res) => {
+router.get('/session/status', async (_req, res) => {
     try {
         // Find any active session (only one can be active at a time)
         const activeSession = await AttendanceSession.findOne({ isActive: true });

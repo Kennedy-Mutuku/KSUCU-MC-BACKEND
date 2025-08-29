@@ -22,3 +22,63 @@ Error getting session: MongooseError: Operation `attendancesessions.findOne()` b
     at Timeout.<anonymous> (/home/ken/KSUCU Website /KSUCU-MC-BACKEND/node_modules/mongoose/lib/drivers/node-mongodb-native/collection.js:188:23)
     at listOnTimeout (node:internal/timers:569:17)
     at process.processTimers (node:internal/timers:512:7)
+Error getting session: MongooseError: Operation `attendancesessions.findOne()` buffering timed out after 10000ms
+    at Timeout.<anonymous> (/home/ken/KSUCU Website /KSUCU-MC-BACKEND/node_modules/mongoose/lib/drivers/node-mongodb-native/collection.js:188:23)
+    at listOnTimeout (node:internal/timers:569:17)
+    at process.processTimers (node:internal/timers:512:7)
+Error getting session: MongooseError: Operation `attendancesessions.findOne()` buffering timed out after 10000ms
+    at Timeout.<anonymous> (/home/ken/KSUCU Website /KSUCU-MC-BACKEND/node_modules/mongoose/lib/drivers/node-mongodb-native/collection.js:188:23)
+    at listOnTimeout (node:internal/timers:569:17)
+    at process.processTimers (node:internal/timers:512:7)
+Error getting session: MongooseError: Operation `attendancesessions.findOne()` buffering timed out after 10000ms
+    at Timeout.<anonymous> (/home/ken/KSUCU Website /KSUCU-MC-BACKEND/node_modules/mongoose/lib/drivers/node-mongodb-native/collection.js:188:23)
+    at listOnTimeout (node:internal/timers:569:17)
+    at process.processTimers (node:internal/timers:512:7)
+Error getting session: MongooseError: Operation `attendancesessions.findOne()` buffering timed out after 10000ms
+    at Timeout.<anonymous> (/home/ken/KSUCU Website /KSUCU-MC-BACKEND/node_modules/mongoose/lib/drivers/node-mongodb-native/collection.js:188:23)
+    at listOnTimeout (node:internal/timers:569:17)
+    at process.processTimers (node:internal/timers:512:7)
+Error getting session: MongooseError: Operation `attendancesessions.findOne()` buffering timed out after 10000ms
+    at Timeout.<anonymous> (/home/ken/KSUCU Website /KSUCU-MC-BACKEND/node_modules/mongoose/lib/drivers/node-mongodb-native/collection.js:188:23)
+    at listOnTimeout (node:internal/timers:569:17)
+    at process.processTimers (node:internal/timers:512:7)
+Error getting session: MongooseError: Operation `attendancesessions.findOne()` buffering timed out after 10000ms
+    at Timeout.<anonymous> (/home/ken/KSUCU Website /KSUCU-MC-BACKEND/node_modules/mongoose/lib/drivers/node-mongodb-native/collection.js:188:23)
+    at listOnTimeout (node:internal/timers:569:17)
+    at process.processTimers (node:internal/timers:512:7)
+Error getting session: MongooseError: Operation `attendancesessions.findOne()` buffering timed out after 10000ms
+    at Timeout.<anonymous> (/home/ken/KSUCU Website /KSUCU-MC-BACKEND/node_modules/mongoose/lib/drivers/node-mongodb-native/collection.js:188:23)
+    at listOnTimeout (node:internal/timers:569:17)
+    at process.processTimers (node:internal/timers:512:7)
+Error getting session: MongooseError: Operation `attendancesessions.findOne()` buffering timed out after 10000ms
+    at Timeout.<anonymous> (/home/ken/KSUCU Website /KSUCU-MC-BACKEND/node_modules/mongoose/lib/drivers/node-mongodb-native/collection.js:188:23)
+    at listOnTimeout (node:internal/timers:569:17)
+    at process.processTimers (node:internal/timers:512:7)
+Error getting session: MongooseError: Operation `attendancesessions.findOne()` buffering timed out after 10000ms
+    at Timeout.<anonymous> (/home/ken/KSUCU Website /KSUCU-MC-BACKEND/node_modules/mongoose/lib/drivers/node-mongodb-native/collection.js:188:23)
+    at listOnTimeout (node:internal/timers:569:17)
+    at process.processTimers (node:internal/timers:512:7)
+MongooseError: Operation `adminnews.findOne()` buffering timed out after 10000ms
+    at Timeout.<anonymous> (/home/ken/KSUCU Website /KSUCU-MC-BACKEND/node_modules/mongoose/lib/drivers/node-mongodb-native/collection.js:188:23)
+    at listOnTimeout (node:internal/timers:569:17)
+    at process.processTimers (node:internal/timers:512:7)
+MongooseError: Operation `adminnews.findOne()` buffering timed out after 10000ms
+    at Timeout.<anonymous> (/home/ken/KSUCU Website /KSUCU-MC-BACKEND/node_modules/mongoose/lib/drivers/node-mongodb-native/collection.js:188:23)
+    at listOnTimeout (node:internal/timers:569:17)
+    at process.processTimers (node:internal/timers:512:7)
+MongooseError: Operation `adminnews.findOne()` buffering timed out after 10000ms
+    at Timeout.<anonymous> (/home/ken/KSUCU Website /KSUCU-MC-BACKEND/node_modules/mongoose/lib/drivers/node-mongodb-native/collection.js:188:23)
+    at listOnTimeout (node:internal/timers:569:17)
+    at process.processTimers (node:internal/timers:512:7)
+MongooseError: Operation `adminnews.findOne()` buffering timed out after 10000ms
+    at Timeout.<anonymous> (/home/ken/KSUCU Website /KSUCU-MC-BACKEND/node_modules/mongoose/lib/drivers/node-mongodb-native/collection.js:188:23)
+    at listOnTimeout (node:internal/timers:569:17)
+    at process.processTimers (node:internal/timers:512:7)
+Error getting session: MongooseError: Operation `attendancesessions.findOne()` buffering timed out after 10000ms
+    at Timeout.<anonymous> (/home/ken/KSUCU Website /KSUCU-MC-BACKEND/node_modules/mongoose/lib/drivers/node-mongodb-native/collection.js:188:23)
+    at listOnTimeout (node:internal/timers:569:17)
+    at process.processTimers (node:internal/timers:512:7)
+Error getting session: MongooseError: Operation `attendancesessions.findOne()` buffering timed out after 10000ms
+    at Timeout.<anonymous> (/home/ken/KSUCU Website /KSUCU-MC-BACKEND/node_modules/mongoose/lib/drivers/node-mongodb-native/collection.js:188:23)
+    at listOnTimeout (node:internal/timers:569:17)
+    at process.processTimers (node:internal/timers:512:7)
