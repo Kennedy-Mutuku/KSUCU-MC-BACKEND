@@ -82,6 +82,47 @@ attendanceRecordSchema.index({ sessionId: 1, regNo: 1 }, { unique: true });
 const AttendanceSession = mongoose.model('AttendanceSession', attendanceSessionSchema);
 const AttendanceRecord = mongoose.model('AttendanceRecord', attendanceRecordSchema);
 
+// FIX PRODUCTION DATABASE: Remove incorrect index and ensure correct one exists
+async function fixDatabaseIndexes() {
+    try {
+        console.log('🔧 Checking and fixing database indexes...');
+        
+        // Get all indexes
+        const indexes = await AttendanceRecord.collection.getIndexes();
+        console.log('📊 Current indexes:', Object.keys(indexes));
+        
+        // Remove the incorrect sessionId_1_userId_1 index if it exists
+        const wrongIndexName = 'sessionId_1_userId_1';
+        if (indexes[wrongIndexName]) {
+            console.log(`🗑️ Dropping incorrect index: ${wrongIndexName}`);
+            await AttendanceRecord.collection.dropIndex(wrongIndexName);
+            console.log(`✅ Dropped incorrect index: ${wrongIndexName}`);
+        }
+        
+        // Ensure the correct index exists
+        try {
+            await AttendanceRecord.collection.createIndex(
+                { sessionId: 1, regNo: 1 }, 
+                { unique: true, name: 'sessionId_1_regNo_1' }
+            );
+            console.log('✅ Correct index (sessionId + regNo) ensured');
+        } catch (error) {
+            if (error.code === 85) { // Index already exists
+                console.log('✅ Correct index already exists');
+            } else {
+                console.error('❌ Error creating correct index:', error);
+            }
+        }
+        
+        console.log('🎉 Database indexes fixed!');
+    } catch (error) {
+        console.error('❌ Error fixing database indexes:', error);
+    }
+}
+
+// Run the fix when the model is loaded
+setTimeout(fixDatabaseIndexes, 2000); // Wait 2 seconds for DB connection
+
 module.exports = {
     AttendanceSession,
     AttendanceRecord

@@ -268,21 +268,9 @@ router.post('/sign-anonymous', async (req, res) => {
             });
         }
         
-        // ENHANCED DEBUG: Check for duplicate registration number in this session ONLY
+        // Check for duplicate registration number in this session ONLY
         const regNoToCheck = regNo.trim().toUpperCase();
-        console.log(`🔍 DETAILED DUPLICATE CHECK:`);
-        console.log(`   - Session ID: ${sessionId}`);
-        console.log(`   - RegNo to check: "${regNoToCheck}"`);
-        console.log(`   - Raw regNo input: "${regNo}"`);
-        
-        // First, let's see ALL records in this session
-        const allSessionRecords = await AttendanceRecord.find({ sessionId: sessionId });
-        console.log(`📊 ALL RECORDS IN SESSION ${sessionId}:`, allSessionRecords.map(r => ({
-            id: r._id,
-            userName: r.userName,
-            regNo: r.regNo,
-            signedAt: r.signedAt
-        })));
+        console.log(`🔍 Checking for duplicate regNo: "${regNoToCheck}" in session: ${sessionId}`);
         
         const existingRecord = await AttendanceRecord.findOne({
             sessionId: sessionId,
@@ -292,9 +280,7 @@ router.post('/sign-anonymous', async (req, res) => {
         if (existingRecord) {
             const errorMessage = `Registration number ${regNoToCheck} has already signed attendance for this session`;
             console.log('⚠️ DUPLICATE FOUND - Registration already exists:', {
-                sessionId: sessionId,
                 regNo: regNoToCheck,
-                existingRecordId: existingRecord._id,
                 existingUserName: existingRecord.userName,
                 existingSignedAt: existingRecord.signedAt
             });
