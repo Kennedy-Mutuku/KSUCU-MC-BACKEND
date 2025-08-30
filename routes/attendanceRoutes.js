@@ -216,6 +216,7 @@ router.post('/sign-anonymous', async (req, res) => {
     try {
         const { sessionId, ministry, name, regNo, year, phoneNumber, signature } = req.body;
         
+        console.log('📝 ========== NEW ATTENDANCE SUBMISSION ==========');
         console.log('📝 Received anonymous attendance submission:', {
             sessionId,
             ministry,
@@ -223,8 +224,10 @@ router.post('/sign-anonymous', async (req, res) => {
             regNo,
             year,
             hasPhoneNumber: !!phoneNumber,
-            hasSignature: !!signature
+            hasSignature: !!signature,
+            timestamp: new Date().toISOString()
         });
+        console.log('📝 Raw regNo before processing:', JSON.stringify(regNo));
         
         if (!sessionId || !ministry || !name || !regNo || !year) {
             const errorMessage = 'Session ID, ministry, name, registration number, and year are required';
@@ -253,33 +256,51 @@ router.post('/sign-anonymous', async (req, res) => {
             });
         }
         
-        // Check for duplicate registration number in this session
+        // Check for duplicate registration number in this session ONLY
+        const regNoToCheck = regNo.trim().toUpperCase();
+        console.log(`🔍 Checking for duplicate regNo: "${regNoToCheck}" in session: ${sessionId}`);
+        
         const existingRecord = await AttendanceRecord.findOne({
-            sessionId,
-            regNo: regNo.trim().toUpperCase()
+            sessionId: sessionId,
+            regNo: regNoToCheck
         });
         
         if (existingRecord) {
-            // Ensure consistent error format for both development and production
-            const errorMessage = `Registration number ${regNo.trim().toUpperCase()} has already signed attendance for this session`;
-            console.log('⚠️ Duplicate registration attempt:', errorMessage);
+            const errorMessage = `Registration number ${regNoToCheck} has already signed attendance for this session`;
+            console.log('⚠️ DUPLICATE FOUND - Registration already exists:', {
+                sessionId: sessionId,
+                regNo: regNoToCheck,
+                existingRecordId: existingRecord._id,
+                existingUserName: existingRecord.userName,
+                existingSignedAt: existingRecord.signedAt
+            });
             return res.status(400).json({ 
                 message: errorMessage,
-                error: errorMessage // Add error field for consistency
+                error: errorMessage
             });
         }
+        
+        console.log(`✅ No duplicate found for regNo: "${regNoToCheck}" - proceeding with registration`);
         
         // Create attendance record
         const attendanceRecord = new AttendanceRecord({
             sessionId,
             userId: null, // No user ID for anonymous signing
             userName: name.trim(),
-            regNo: regNo.trim().toUpperCase(),
+            regNo: regNoToCheck, // Use the already processed regNo
             year: parseInt(year),
             ministry,
             phoneNumber: phoneNumber?.trim() || '',
             signature: signature || '',
             signedAt: new Date()
+        });
+        
+        console.log(`📝 Creating new attendance record:`, {
+            sessionId: sessionId,
+            userName: name.trim(),
+            regNo: regNoToCheck,
+            year: parseInt(year),
+            ministry: ministry
         });
         
         await attendanceRecord.save();
@@ -288,8 +309,9 @@ router.post('/sign-anonymous', async (req, res) => {
         session.attendanceCount += 1;
         await session.save();
         
-        console.log(`📝 Anonymous attendance signed: ${name} (${regNo}) for ${ministry}`);
+        console.log(`✅ SUCCESS: Anonymous attendance signed: ${name.trim()} (${regNoToCheck}) for ${ministry}`);
         console.log(`   Session ID: ${sessionId}`);
+        console.log(`   Record ID: ${attendanceRecord._id}`);
         console.log(`   Total attendees in session: ${session.attendanceCount}`);
         
         res.json({
@@ -307,14 +329,42 @@ router.post('/sign-anonymous', async (req, res) => {
         });
         
     } catch (error) {
-        console.error('Error signing anonymous attendance:', error);
+        console.error('❌ ERROR signing anonymous attendance:', error);
+        
+        // Handle MongoDB duplicate key error specifically
         if (error.code === 11000) {
-            const errorMessage = 'You have already signed attendance for this session';
+            console.log('🔍 MongoDB duplicate key error details:', {
+                code: error.code,
+                keyPattern: error.keyPattern,
+                keyValue: error.keyValue,
+                fullError: error
+            });
+            
+            const errorMessage = 'This registration number has already signed attendance for this session';
             return res.status(400).json({ 
                 message: errorMessage,
                 error: errorMessage 
             });
         }
+        
+        // Handle validation errors
+        if (error.name === 'ValidationError') {
+            console.log('🔍 Mongoose validation error:', error.errors);
+            const errorMessage = 'Invalid data provided for attendance';
+            return res.status(400).json({ 
+                message: errorMessage,
+                error: errorMessage 
+            });
+        }
+        
+        // Handle other errors
+        console.log('🔍 Unexpected error details:', {
+            name: error.name,
+            message: error.message,
+            code: error.code,
+            stack: error.stack
+        });
+        
         const errorMessage = error.message || 'Error signing attendance';
         res.status(500).json({ 
             message: 'Error signing attendance',
@@ -632,6 +682,43 @@ router.post('/session/force-close', async (req, res) => {
         console.error('Error force closing session:', error);
         res.status(500).json({ 
             message: 'Error force closing session',
+            error: error.message 
+        });
+    }
+});
+
+// DEBUG ROUTE: Get all records for debugging (remove in production)
+router.get('/debug/records/:sessionId', async (req, res) => {
+    try {
+        const { sessionId } = req.params;
+        
+        console.log(`🔍 DEBUG: Fetching ALL records for session: ${sessionId}`);
+        
+        const records = await AttendanceRecord.find({ sessionId })
+            .sort({ signedAt: 1 });
+        
+        console.log(`🔍 DEBUG: Found ${records.length} records:`);
+        records.forEach((record, index) => {
+            console.log(`  ${index + 1}. ${record.userName} - ${record.regNo} - ${record.signedAt}`);
+        });
+        
+        res.json({
+            sessionId,
+            totalRecords: records.length,
+            records: records.map(r => ({
+                _id: r._id,
+                userName: r.userName,
+                regNo: r.regNo,
+                year: r.year,
+                ministry: r.ministry,
+                signedAt: r.signedAt
+            }))
+        });
+        
+    } catch (error) {
+        console.error('Error getting debug records:', error);
+        res.status(500).json({ 
+            message: 'Error getting debug records',
             error: error.message 
         });
     }
