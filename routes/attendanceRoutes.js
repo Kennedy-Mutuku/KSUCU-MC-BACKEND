@@ -210,8 +210,10 @@ router.post('/sign-anonymous', async (req, res) => {
         });
         
         if (!sessionId || !ministry || !name || !regNo || !year) {
+            const errorMessage = 'Session ID, ministry, name, registration number, and year are required';
             return res.status(400).json({ 
-                message: 'Session ID, ministry, name, registration number, and year are required' 
+                message: errorMessage,
+                error: errorMessage // Consistent error format
             });
         }
         
@@ -219,12 +221,18 @@ router.post('/sign-anonymous', async (req, res) => {
         const session = await AttendanceSession.findById(sessionId);
         
         if (!session) {
-            return res.status(404).json({ message: 'Session not found' });
+            const errorMessage = 'Session not found';
+            return res.status(404).json({ 
+                message: errorMessage,
+                error: errorMessage 
+            });
         }
         
         if (!session.isActive) {
+            const errorMessage = 'This attendance session is closed';
             return res.status(400).json({ 
-                message: 'This attendance session is closed' 
+                message: errorMessage,
+                error: errorMessage 
             });
         }
         
@@ -235,8 +243,12 @@ router.post('/sign-anonymous', async (req, res) => {
         });
         
         if (existingRecord) {
+            // Ensure consistent error format for both development and production
+            const errorMessage = `Registration number ${regNo.trim().toUpperCase()} has already signed attendance for this session`;
+            console.log('⚠️ Duplicate registration attempt:', errorMessage);
             return res.status(400).json({ 
-                message: `Registration number ${regNo} has already signed attendance for this session` 
+                message: errorMessage,
+                error: errorMessage // Add error field for consistency
             });
         }
         
@@ -280,13 +292,16 @@ router.post('/sign-anonymous', async (req, res) => {
     } catch (error) {
         console.error('Error signing anonymous attendance:', error);
         if (error.code === 11000) {
+            const errorMessage = 'You have already signed attendance for this session';
             return res.status(400).json({ 
-                message: 'You have already signed attendance for this session' 
+                message: errorMessage,
+                error: errorMessage 
             });
         }
+        const errorMessage = error.message || 'Error signing attendance';
         res.status(500).json({ 
             message: 'Error signing attendance',
-            error: error.message 
+            error: errorMessage 
         });
     }
 });
