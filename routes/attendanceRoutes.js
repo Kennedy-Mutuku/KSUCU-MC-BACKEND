@@ -237,28 +237,52 @@ router.post('/sign-anonymous', async (req, res) => {
             });
         }
         
-        // Find the session
+        // Find the session with enhanced debugging
+        console.log(`🔍 Looking for session with ID: "${sessionId}"`);
         const session = await AttendanceSession.findById(sessionId);
         
         if (!session) {
             const errorMessage = 'Session not found';
+            console.log(`❌ SESSION NOT FOUND for ID: "${sessionId}"`);
             return res.status(404).json({ 
                 message: errorMessage,
                 error: errorMessage 
             });
         }
         
+        console.log(`✅ Session found:`, {
+            id: session._id,
+            ministry: session.ministry,
+            leadershipRole: session.leadershipRole,
+            isActive: session.isActive,
+            startTime: session.startTime,
+            attendanceCount: session.attendanceCount
+        });
+        
         if (!session.isActive) {
             const errorMessage = 'This attendance session is closed';
+            console.log(`❌ Session is not active:`, session.isActive);
             return res.status(400).json({ 
                 message: errorMessage,
                 error: errorMessage 
             });
         }
         
-        // Check for duplicate registration number in this session ONLY
+        // ENHANCED DEBUG: Check for duplicate registration number in this session ONLY
         const regNoToCheck = regNo.trim().toUpperCase();
-        console.log(`🔍 Checking for duplicate regNo: "${regNoToCheck}" in session: ${sessionId}`);
+        console.log(`🔍 DETAILED DUPLICATE CHECK:`);
+        console.log(`   - Session ID: ${sessionId}`);
+        console.log(`   - RegNo to check: "${regNoToCheck}"`);
+        console.log(`   - Raw regNo input: "${regNo}"`);
+        
+        // First, let's see ALL records in this session
+        const allSessionRecords = await AttendanceRecord.find({ sessionId: sessionId });
+        console.log(`📊 ALL RECORDS IN SESSION ${sessionId}:`, allSessionRecords.map(r => ({
+            id: r._id,
+            userName: r.userName,
+            regNo: r.regNo,
+            signedAt: r.signedAt
+        })));
         
         const existingRecord = await AttendanceRecord.findOne({
             sessionId: sessionId,
