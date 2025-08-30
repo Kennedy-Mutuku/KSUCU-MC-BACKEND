@@ -99,17 +99,34 @@ router.post('/end-session', async (req, res) => {
 });
 
 // Get current active session status (for cross-device checking) - MUST come before /session/:ministry
-router.get('/session/status', async (_req, res) => {
+router.get('/session/status', async (req, res) => {
     try {
+        console.log('🔍 Checking session status for cross-device sync...');
+        
+        // Add no-cache headers to prevent caching issues
+        res.set({
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+        });
+        
         // Find any active session (only one can be active at a time)
         const activeSession = await AttendanceSession.findOne({ isActive: true });
         
         if (!activeSession) {
+            console.log('❌ No active session found');
             return res.json({
                 message: 'No active session',
                 session: null
             });
         }
+        
+        // Get real-time attendance count
+        const attendanceCount = await AttendanceRecord.countDocuments({
+            sessionId: activeSession._id
+        });
+        
+        console.log(`✅ Active session found: ${activeSession.leadershipRole} (${attendanceCount} attendees)`);
         
         res.json({
             message: 'Active session found',
@@ -120,7 +137,7 @@ router.get('/session/status', async (_req, res) => {
                 isActive: activeSession.isActive,
                 startTime: activeSession.startTime,
                 endTime: activeSession.endTime,
-                attendanceCount: activeSession.attendanceCount
+                attendanceCount: attendanceCount
             }
         });
         
@@ -392,6 +409,13 @@ router.get('/records/:sessionId', async (req, res) => {
         
         console.log(`📊 Fetching attendance records for session: ${sessionId}`);
         
+        // Add no-cache headers for real-time sync
+        res.set({
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+        });
+        
         // Validate session ID format
         if (!sessionId || sessionId === 'undefined' || sessionId === 'null') {
             return res.status(400).json({ 
@@ -408,7 +432,7 @@ router.get('/records/:sessionId', async (req, res) => {
         
         // Log first few records for debugging
         if (records.length > 0) {
-            console.log('Sample records:', records.slice(0, 3).map(r => ({
+            console.log('Recent records:', records.slice(-3).map(r => ({
                 name: r.userName,
                 regNo: r.regNo,
                 signedAt: r.signedAt
@@ -418,7 +442,8 @@ router.get('/records/:sessionId', async (req, res) => {
         res.json({
             records,
             count: records.length,
-            sessionId
+            sessionId,
+            timestamp: new Date().toISOString() // Add timestamp for debugging
         });
         
     } catch (error) {
