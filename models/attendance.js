@@ -56,6 +56,10 @@ const attendanceRecordSchema = new mongoose.Schema({
         type: Number,
         required: true
     },
+    course: {
+        type: String,
+        required: true
+    },
     ministry: {
         type: String,
         required: true

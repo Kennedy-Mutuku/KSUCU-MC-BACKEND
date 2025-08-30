@@ -202,22 +202,74 @@ exports.login = async (req, res) => {
 // };
 
 
-// Fetch and send news data without verification
+// Update news data via JSON (for the new admin interface)
+exports.updateNewsData = async (req, res) => {
+    try {
+        const { title, body, imageUrl, eventDate, eventTime } = req.body;
 
+        if (!title || !body) {
+            return res.status(400).json({ message: 'Title and body are required' });
+        }
+
+        // Find existing news record or create a new one
+        let user = await User.findOne();
+        
+        if (!user) {
+            // Create new news record if none exists
+            user = new User({
+                email: 'admin@ksucu.com', // Placeholder
+                phone: '0000000000', // Placeholder
+                password: 'placeholder', // Placeholder
+                title,
+                body,
+                imageUrl: imageUrl || '',
+                eventDate: eventDate ? new Date(eventDate) : null,
+                eventTime: eventTime || null
+            });
+        } else {
+            // Update existing record
+            user.title = title;
+            user.body = body;
+            user.imageUrl = imageUrl || '';
+            user.eventDate = eventDate ? new Date(eventDate) : null;
+            user.eventTime = eventTime || null;
+        }
+
+        await user.save();
+
+        res.status(200).json({
+            message: 'News updated successfully!',
+            data: {
+                title: user.title,
+                body: user.body,
+                imageUrl: user.imageUrl,
+                eventDate: user.eventDate,
+                eventTime: user.eventTime
+            }
+        });
+    } catch (error) {
+        console.error('Error updating news:', error);
+        res.status(500).json({ message: 'Error updating news data' });
+    }
+};
+
+// Fetch and send news data without verification
 exports.getNewsData = async (req, res) => {
     try {
         // Fetch the user's news data (without verifying userId)
-        const user = await User.findOne().select('title body imageUrl');
+        const user = await User.findOne().select('title body imageUrl eventDate eventTime');
 
         if (!user) {
-            return res.status(404).json({ message: 'User not found' });
+            return res.status(404).json({ message: 'No news available' });
         }
 
         // Return the news data
         res.status(200).json({
             title: user.title,
             body: user.body,
-            imageUrl: user.imageUrl
+            imageUrl: user.imageUrl,
+            eventDate: user.eventDate,
+            eventTime: user.eventTime
         });
     } catch (error) {
         console.error(error);

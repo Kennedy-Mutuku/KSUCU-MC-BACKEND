@@ -28,6 +28,14 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: false,  // Optional for authentication users, required for uploaded content
     },
+    eventDate: {
+        type: Date,
+        required: false,  // Optional - only for events with countdown
+    },
+    eventTime: {
+        type: String,
+        required: false,  // Optional - time for the event (e.g., "14:30")
+    },
 });
 
 const User = mongoose.model('adminNews', userSchema);

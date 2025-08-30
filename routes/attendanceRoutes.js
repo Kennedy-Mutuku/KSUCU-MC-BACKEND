@@ -214,7 +214,7 @@ router.get('/session/:ministry', async (req, res) => {
 // Anonymous attendance signing (for users without accounts)
 router.post('/sign-anonymous', async (req, res) => {
     try {
-        const { sessionId, ministry, name, regNo, year, phoneNumber, signature } = req.body;
+        const { sessionId, ministry, name, regNo, year, course, phoneNumber, signature } = req.body;
         
         console.log('📝 ========== NEW ATTENDANCE SUBMISSION ==========');
         console.log('📝 Received anonymous attendance submission:', {
@@ -223,14 +223,15 @@ router.post('/sign-anonymous', async (req, res) => {
             name,
             regNo,
             year,
+            course,
             hasPhoneNumber: !!phoneNumber,
             hasSignature: !!signature,
             timestamp: new Date().toISOString()
         });
         console.log('📝 Raw regNo before processing:', JSON.stringify(regNo));
         
-        if (!sessionId || !ministry || !name || !regNo || !year) {
-            const errorMessage = 'Session ID, ministry, name, registration number, and year are required';
+        if (!sessionId || !ministry || !name || !regNo || !year || !course) {
+            const errorMessage = 'Session ID, ministry, name, registration number, year, and course are required';
             return res.status(400).json({ 
                 message: errorMessage,
                 error: errorMessage // Consistent error format
@@ -299,6 +300,7 @@ router.post('/sign-anonymous', async (req, res) => {
             userName: name.trim(),
             regNo: regNoToCheck, // Use the already processed regNo
             year: parseInt(year),
+            course: course.trim(),
             ministry,
             phoneNumber: phoneNumber?.trim() || '',
             signature: signature || '',
@@ -310,6 +312,7 @@ router.post('/sign-anonymous', async (req, res) => {
             userName: name.trim(),
             regNo: regNoToCheck,
             year: parseInt(year),
+            course: course.trim(),
             ministry: ministry
         });
         
@@ -433,6 +436,7 @@ router.post('/sign', verifyToken, async (req, res) => {
             userName: user.username,
             regNo: user.reg || 'N/A',
             year: user.year || 1,
+            course: user.course || 'N/A',
             ministry,
             signedAt: new Date()
         });
@@ -486,13 +490,13 @@ router.get('/records/:sessionId', async (req, res) => {
         
         const records = await AttendanceRecord.find({ sessionId })
             .populate('userId', 'username email')
-            .sort({ signedAt: 1 });
+            .sort({ signedAt: -1 }); // Sort newest first (most recently signed appears at top)
         
         console.log(`✅ Found ${records.length} attendance records for session ${sessionId}`);
         
-        // Log first few records for debugging
+        // Log first few records for debugging (newest first due to sort order)
         if (records.length > 0) {
-            console.log('Recent records:', records.slice(-3).map(r => ({
+            console.log('Latest records (newest first):', records.slice(0, 3).map(r => ({
                 name: r.userName,
                 regNo: r.regNo,
                 signedAt: r.signedAt
@@ -548,27 +552,49 @@ router.post('/session/open', async (req, res) => {
         }
         
         // Check if there's already an active session (only one allowed at a time)
-        const existingSession = await AttendanceSession.findOne({ isActive: true });
+        const existingActiveSession = await AttendanceSession.findOne({ isActive: true });
         
-        if (existingSession) {
+        if (existingActiveSession) {
             return res.status(409).json({ 
                 message: 'Another session is already active',
                 activeSession: {
-                    leadershipRole: existingSession.leadershipRole,
-                    startTime: existingSession.startTime
+                    leadershipRole: existingActiveSession.leadershipRole,
+                    startTime: existingActiveSession.startTime
                 }
             });
         }
         
-        // Create new session
-        const session = new AttendanceSession({
-            ministry,
-            leadershipRole,
-            isActive: true,
-            startTime: new Date()
-        });
+        // Try to reactivate the most recent session to preserve attendance records
+        const mostRecentSession = await AttendanceSession.findOne({})
+            .sort({ createdAt: -1 })
+            .limit(1);
         
-        await session.save();
+        let session;
+        
+        if (mostRecentSession && !mostRecentSession.isActive) {
+            // Reactivate the most recent session to preserve attendance records
+            console.log(`🔄 Reactivating existing session ${mostRecentSession._id} to preserve attendance records`);
+            
+            mostRecentSession.isActive = true;
+            mostRecentSession.leadershipRole = leadershipRole;
+            mostRecentSession.ministry = ministry;
+            mostRecentSession.startTime = new Date(); // Update start time for new session
+            mostRecentSession.endTime = undefined; // Clear end time
+            
+            session = await mostRecentSession.save();
+        } else {
+            // Create completely new session (first time or no previous sessions)
+            console.log(`✨ Creating brand new session for ${leadershipRole}`);
+            
+            session = new AttendanceSession({
+                ministry,
+                leadershipRole,
+                isActive: true,
+                startTime: new Date()
+            });
+            
+            await session.save();
+        }
         
         console.log(`✅ Session opened by ${leadershipRole} for ${ministry} ministry`);
         
@@ -692,6 +718,66 @@ router.post('/session/force-close', async (req, res) => {
         console.error('Error force closing session:', error);
         res.status(500).json({ 
             message: 'Error force closing session',
+            error: error.message 
+        });
+    }
+});
+
+// Reset session - close current session and clear all attendance records
+router.post('/session/reset', async (req, res) => {
+    try {
+        const { leadershipRole } = req.body;
+        
+        if (!leadershipRole) {
+            return res.status(400).json({ message: 'Leadership role is required' });
+        }
+        
+        console.log(`🔄 RESET requested by ${leadershipRole} - This will clear ALL attendance records`);
+        
+        // Find any active session
+        const activeSession = await AttendanceSession.findOne({ isActive: true });
+        
+        if (activeSession) {
+            console.log(`🔒 Closing active session ${activeSession._id}`);
+            activeSession.isActive = false;
+            activeSession.endTime = new Date();
+            await activeSession.save();
+        }
+        
+        // Clear ALL attendance records from ALL sessions
+        const deleteResult = await AttendanceRecord.deleteMany({});
+        console.log(`🗑️ Deleted ${deleteResult.deletedCount} attendance records`);
+        
+        // Create a brand new session
+        const newSession = new AttendanceSession({
+            ministry: 'General',
+            leadershipRole,
+            isActive: true,
+            startTime: new Date(),
+            attendanceCount: 0
+        });
+        
+        await newSession.save();
+        
+        console.log(`✨ Created fresh session ${newSession._id} after reset`);
+        
+        res.json({
+            message: 'Session reset successfully - All attendance records cleared',
+            session: {
+                _id: newSession._id,
+                leadershipRole: newSession.leadershipRole,
+                ministry: newSession.ministry,
+                isActive: newSession.isActive,
+                startTime: newSession.startTime,
+                attendanceCount: 0
+            },
+            recordsCleared: deleteResult.deletedCount
+        });
+        
+    } catch (error) {
+        console.error('Error resetting session:', error);
+        res.status(500).json({ 
+            message: 'Error resetting session',
             error: error.message 
         });
     }

@@ -11,6 +11,9 @@ router.post('/login', userController.login);
 router.post('/upload',adminNewsAuthMiddleware, userController.uploadFile);
 router.post('/logout', adminNewsAuthMiddleware, userController.logout);
 
+// New JSON-based news update route
+router.post('/news', userController.updateNewsData);
+
 router.get('/news', userController.getNewsData);
 
 module.exports = router;

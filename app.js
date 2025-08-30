@@ -72,6 +72,7 @@ mongoose.connect(dbUri, {
 
 app.use('/users', userRoutes);
 app.use('/adminnews', newsAdminRoutes);
+app.use('/news', newsAdminRoutes); // Add direct news route
 app.use('/adminmission', missionAdminRoutes);
 app.use('/adminBs', bsAdminRoutes);
 app.use('/sadmin', superAdminRoutes);
