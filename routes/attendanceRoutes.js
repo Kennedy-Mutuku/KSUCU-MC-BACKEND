@@ -214,7 +214,7 @@ router.get('/session/:ministry', async (req, res) => {
 // Anonymous attendance signing (for users without accounts)
 router.post('/sign-anonymous', async (req, res) => {
     try {
-        const { sessionId, ministry, name, regNo, year, course, phoneNumber, signature } = req.body;
+        const { sessionId, ministry, name, regNo, year, course, phoneNumber, signature, userType } = req.body;
         
         console.log('📝 ========== NEW ATTENDANCE SUBMISSION ==========');
         console.log('📝 Received anonymous attendance submission:', {
@@ -224,14 +224,25 @@ router.post('/sign-anonymous', async (req, res) => {
             regNo,
             year,
             course,
+            userType: userType || 'student',
             hasPhoneNumber: !!phoneNumber,
             hasSignature: !!signature,
             timestamp: new Date().toISOString()
         });
         console.log('📝 Raw regNo before processing:', JSON.stringify(regNo));
         
-        if (!sessionId || !ministry || !name || !regNo || !year || !course) {
-            const errorMessage = 'Session ID, ministry, name, registration number, year, and course are required';
+        // Validate required fields based on user type
+        if (!sessionId || !ministry || !name) {
+            const errorMessage = 'Session ID, ministry, and name are required';
+            return res.status(400).json({ 
+                message: errorMessage,
+                error: errorMessage
+            });
+        }
+        
+        // For students, require additional fields
+        if (userType === 'student' && (!regNo || !year || !course)) {
+            const errorMessage = 'Students must provide registration number, year, and course';
             return res.status(400).json({ 
                 message: errorMessage,
                 error: errorMessage // Consistent error format
@@ -299,8 +310,9 @@ router.post('/sign-anonymous', async (req, res) => {
             userId: null, // No user ID for anonymous signing
             userName: name.trim(),
             regNo: regNoToCheck, // Use the already processed regNo
-            year: parseInt(year),
-            course: course.trim(),
+            year: parseInt(year) || 0,
+            course: course?.trim() || 'N/A',
+            userType: userType || 'student',
             ministry,
             phoneNumber: phoneNumber?.trim() || '',
             signature: signature || '',
@@ -311,8 +323,9 @@ router.post('/sign-anonymous', async (req, res) => {
             sessionId: sessionId,
             userName: name.trim(),
             regNo: regNoToCheck,
-            year: parseInt(year),
-            course: course.trim(),
+            year: parseInt(year) || 0,
+            course: course?.trim() || 'N/A',
+            userType: userType || 'student',
             ministry: ministry
         });
         
@@ -437,6 +450,7 @@ router.post('/sign', verifyToken, async (req, res) => {
             regNo: user.reg || 'N/A',
             year: user.year || 1,
             course: user.course || 'N/A',
+            userType: 'student', // Authenticated users are always students
             ministry,
             signedAt: new Date()
         });

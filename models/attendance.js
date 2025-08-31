@@ -60,6 +60,11 @@ const attendanceRecordSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    userType: {
+        type: String,
+        enum: ['student', 'visitor'],
+        default: 'student'
+    },
     ministry: {
         type: String,
         required: true
