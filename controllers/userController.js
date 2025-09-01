@@ -30,12 +30,12 @@ exports.login = async (req, res) => {
       console.log('invalid pswd');
       return res.status(401).json({ message: 'Invalid username or password' });
     }
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_USER_SECRET, { expiresIn: '2h' });
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_USER_SECRET, { expiresIn: '30d' }); // 30 days expiry
 
     res.cookie('user_s', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      maxAge: 3 * 60 * 60 * 1000, // 3 hours (match session maxAge)
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days in milliseconds
       sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax',
     });
 
@@ -246,12 +246,22 @@ exports.updateUserData = async (req, res) => {
 
 exports.logout = async (req, res) => {
   try {
-    res.clearCookie('token'); 
+    // Clear both cookies with proper options
+    res.clearCookie('token', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax',
+      path: '/'
+    }); 
+    
     res.clearCookie('user_s', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax'
+      sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax',
+      path: '/'
     }); 
+    
+    console.log('User logged out successfully');
     return res.status(200).json({ message: 'Logout successful' });
   } catch (error) {
     console.error('Error during logout:', error);
