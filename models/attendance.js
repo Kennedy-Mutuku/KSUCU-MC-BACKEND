@@ -94,18 +94,18 @@ const AttendanceRecord = mongoose.model('AttendanceRecord', attendanceRecordSche
 // FIX PRODUCTION DATABASE: Remove incorrect index and ensure correct one exists
 async function fixDatabaseIndexes() {
     try {
-        console.log('🔧 Checking and fixing database indexes...');
+        console.log('Checking and fixing database indexes...');
         
         // Get all indexes
         const indexes = await AttendanceRecord.collection.getIndexes();
-        console.log('📊 Current indexes:', Object.keys(indexes));
+        console.log('Current indexes:', Object.keys(indexes));
         
         // Remove the incorrect sessionId_1_userId_1 index if it exists
         const wrongIndexName = 'sessionId_1_userId_1';
         if (indexes[wrongIndexName]) {
-            console.log(`🗑️ Dropping incorrect index: ${wrongIndexName}`);
+            console.log(`Dropping incorrect index: ${wrongIndexName}`);
             await AttendanceRecord.collection.dropIndex(wrongIndexName);
-            console.log(`✅ Dropped incorrect index: ${wrongIndexName}`);
+            console.log(`Dropped incorrect index: ${wrongIndexName}`);
         }
         
         // Ensure the correct index exists
@@ -114,18 +114,18 @@ async function fixDatabaseIndexes() {
                 { sessionId: 1, regNo: 1 }, 
                 { unique: true, name: 'sessionId_1_regNo_1' }
             );
-            console.log('✅ Correct index (sessionId + regNo) ensured');
+            console.log('Correct index (sessionId + regNo) ensured');
         } catch (error) {
             if (error.code === 85) { // Index already exists
-                console.log('✅ Correct index already exists');
+                console.log('Correct index already exists');
             } else {
-                console.error('❌ Error creating correct index:', error);
+                console.error('Error creating correct index:', error);
             }
         }
         
-        console.log('🎉 Database indexes fixed!');
+        console.log('Database indexes fixed!');
     } catch (error) {
-        console.error('❌ Error fixing database indexes:', error);
+        console.error('Error fixing database indexes:', error);
     }
 }
 

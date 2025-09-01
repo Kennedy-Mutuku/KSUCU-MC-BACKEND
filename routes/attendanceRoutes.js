@@ -101,7 +101,7 @@ router.post('/end-session', async (req, res) => {
 // Get current active session status (for cross-device checking) - MUST come before /session/:ministry
 router.get('/session/status', async (req, res) => {
     try {
-        console.log('🔍 Checking session status for cross-device sync...');
+        console.log('Checking session status for cross-device sync...');
         
         // Add no-cache headers to prevent caching issues
         res.set({
@@ -114,7 +114,7 @@ router.get('/session/status', async (req, res) => {
         const activeSession = await AttendanceSession.findOne({ isActive: true });
         
         if (!activeSession) {
-            console.log('❌ No active session found');
+            console.log('No active session found');
             return res.json({
                 message: 'No active session',
                 session: null
@@ -126,7 +126,7 @@ router.get('/session/status', async (req, res) => {
             sessionId: activeSession._id
         });
         
-        console.log(`✅ Active session found: ${activeSession.leadershipRole} (${attendanceCount} attendees)`);
+        console.log(`Active session found: ${activeSession.leadershipRole} (${attendanceCount} attendees)`);
         
         res.json({
             message: 'Active session found',
@@ -216,8 +216,8 @@ router.post('/sign-anonymous', async (req, res) => {
     try {
         const { sessionId, ministry, name, regNo, year, course, phoneNumber, signature, userType } = req.body;
         
-        console.log('📝 ========== NEW ATTENDANCE SUBMISSION ==========');
-        console.log('📝 Received anonymous attendance submission:', {
+        console.log('========== NEW ATTENDANCE SUBMISSION ==========');
+        console.log('Received anonymous attendance submission:', {
             sessionId,
             ministry,
             name,
@@ -229,7 +229,7 @@ router.post('/sign-anonymous', async (req, res) => {
             hasSignature: !!signature,
             timestamp: new Date().toISOString()
         });
-        console.log('📝 Raw regNo before processing:', JSON.stringify(regNo));
+        console.log('Raw regNo before processing:', JSON.stringify(regNo));
         
         // Validate required fields based on user type
         if (!sessionId || !ministry || !name) {
@@ -250,19 +250,19 @@ router.post('/sign-anonymous', async (req, res) => {
         }
         
         // Find the session with enhanced debugging
-        console.log(`🔍 Looking for session with ID: "${sessionId}"`);
+        console.log(`Looking for session with ID: "${sessionId}"`);
         const session = await AttendanceSession.findById(sessionId);
         
         if (!session) {
             const errorMessage = 'Session not found';
-            console.log(`❌ SESSION NOT FOUND for ID: "${sessionId}"`);
+            console.log(`SESSION NOT FOUND for ID: "${sessionId}"`);
             return res.status(404).json({ 
                 message: errorMessage,
                 error: errorMessage 
             });
         }
         
-        console.log(`✅ Session found:`, {
+        console.log(`Session found:`, {
             id: session._id,
             ministry: session.ministry,
             leadershipRole: session.leadershipRole,
@@ -273,7 +273,7 @@ router.post('/sign-anonymous', async (req, res) => {
         
         if (!session.isActive) {
             const errorMessage = 'This attendance session is closed';
-            console.log(`❌ Session is not active:`, session.isActive);
+            console.log(`Session is not active:`, session.isActive);
             return res.status(400).json({ 
                 message: errorMessage,
                 error: errorMessage 
@@ -282,7 +282,7 @@ router.post('/sign-anonymous', async (req, res) => {
         
         // Check for duplicate registration number in this session ONLY
         const regNoToCheck = regNo.trim().toUpperCase();
-        console.log(`🔍 Checking for duplicate regNo: "${regNoToCheck}" in session: ${sessionId}`);
+        console.log(`Checking for duplicate regNo: "${regNoToCheck}" in session: ${sessionId}`);
         
         const existingRecord = await AttendanceRecord.findOne({
             sessionId: sessionId,
@@ -291,7 +291,7 @@ router.post('/sign-anonymous', async (req, res) => {
         
         if (existingRecord) {
             const errorMessage = `Registration number ${regNoToCheck} has already signed attendance for this session`;
-            console.log('⚠️ DUPLICATE FOUND - Registration already exists:', {
+            console.log('DUPLICATE FOUND - Registration already exists:', {
                 regNo: regNoToCheck,
                 existingUserName: existingRecord.userName,
                 existingSignedAt: existingRecord.signedAt
@@ -302,7 +302,7 @@ router.post('/sign-anonymous', async (req, res) => {
             });
         }
         
-        console.log(`✅ No duplicate found for regNo: "${regNoToCheck}" - proceeding with registration`);
+        console.log(`No duplicate found for regNo: "${regNoToCheck}" - proceeding with registration`);
         
         // Create attendance record
         const attendanceRecord = new AttendanceRecord({
@@ -319,7 +319,7 @@ router.post('/sign-anonymous', async (req, res) => {
             signedAt: new Date()
         });
         
-        console.log(`📝 Creating new attendance record:`, {
+        console.log(`Creating new attendance record:`, {
             sessionId: sessionId,
             userName: name.trim(),
             regNo: regNoToCheck,
@@ -335,7 +335,7 @@ router.post('/sign-anonymous', async (req, res) => {
         session.attendanceCount += 1;
         await session.save();
         
-        console.log(`✅ SUCCESS: Anonymous attendance signed: ${name.trim()} (${regNoToCheck}) for ${ministry}`);
+        console.log(`SUCCESS: Anonymous attendance signed: ${name.trim()} (${regNoToCheck}) for ${ministry}`);
         console.log(`   Session ID: ${sessionId}`);
         console.log(`   Record ID: ${attendanceRecord._id}`);
         console.log(`   Total attendees in session: ${session.attendanceCount}`);
@@ -355,11 +355,11 @@ router.post('/sign-anonymous', async (req, res) => {
         });
         
     } catch (error) {
-        console.error('❌ ERROR signing anonymous attendance:', error);
+        console.error('ERROR signing anonymous attendance:', error);
         
         // Handle MongoDB duplicate key error specifically
         if (error.code === 11000) {
-            console.log('🔍 MongoDB duplicate key error details:', {
+            console.log('MongoDB duplicate key error details:', {
                 code: error.code,
                 keyPattern: error.keyPattern,
                 keyValue: error.keyValue,
@@ -375,7 +375,7 @@ router.post('/sign-anonymous', async (req, res) => {
         
         // Handle validation errors
         if (error.name === 'ValidationError') {
-            console.log('🔍 Mongoose validation error:', error.errors);
+            console.log('Mongoose validation error:', error.errors);
             const errorMessage = 'Invalid data provided for attendance';
             return res.status(400).json({ 
                 message: errorMessage,
@@ -384,7 +384,7 @@ router.post('/sign-anonymous', async (req, res) => {
         }
         
         // Handle other errors
-        console.log('🔍 Unexpected error details:', {
+        console.log('Unexpected error details:', {
             name: error.name,
             message: error.message,
             code: error.code,
@@ -485,7 +485,7 @@ router.get('/records/:sessionId', async (req, res) => {
     try {
         const { sessionId } = req.params;
         
-        console.log(`📊 Fetching attendance records for session: ${sessionId}`);
+        console.log(`Fetching attendance records for session: ${sessionId}`);
         
         // Add no-cache headers for real-time sync
         res.set({
@@ -506,7 +506,7 @@ router.get('/records/:sessionId', async (req, res) => {
             .populate('userId', 'username email')
             .sort({ signedAt: -1 }); // Sort newest first (most recently signed appears at top)
         
-        console.log(`✅ Found ${records.length} attendance records for session ${sessionId}`);
+        console.log(`Found ${records.length} attendance records for session ${sessionId}`);
         
         // Log first few records for debugging (newest first due to sort order)
         if (records.length > 0) {
@@ -587,7 +587,7 @@ router.post('/session/open', async (req, res) => {
         
         if (mostRecentSession && !mostRecentSession.isActive) {
             // Reactivate the most recent session to preserve attendance records
-            console.log(`🔄 Reactivating existing session ${mostRecentSession._id} to preserve attendance records`);
+            console.log(`Reactivating existing session ${mostRecentSession._id} to preserve attendance records`);
             
             mostRecentSession.isActive = true;
             mostRecentSession.leadershipRole = leadershipRole;
@@ -598,7 +598,7 @@ router.post('/session/open', async (req, res) => {
             session = await mostRecentSession.save();
         } else {
             // Create completely new session (first time or no previous sessions)
-            console.log(`✨ Creating brand new session for ${leadershipRole}`);
+            console.log(`Creating brand new session for ${leadershipRole}`);
             
             session = new AttendanceSession({
                 ministry,
@@ -610,7 +610,7 @@ router.post('/session/open', async (req, res) => {
             await session.save();
         }
         
-        console.log(`✅ Session opened by ${leadershipRole} for ${ministry} ministry`);
+        console.log(`Session opened by ${leadershipRole} for ${ministry} ministry`);
         
         res.status(201).json({
             message: 'Session opened successfully',
@@ -661,7 +661,7 @@ router.post('/session/close', async (req, res) => {
         
         await session.save();
         
-        console.log(`🔒 Session closed by ${leadershipRole} - ${session.attendanceCount} attendees`);
+        console.log(`Session closed by ${leadershipRole} - ${session.attendanceCount} attendees`);
         
         res.json({
             message: 'Session closed successfully',
@@ -712,7 +712,7 @@ router.post('/session/force-close', async (req, res) => {
         
         await activeSession.save();
         
-        console.log(`⚠️ Session forcefully closed by ${newLeadershipRole} - was owned by ${oldLeadershipRole} - ${activeSession.attendanceCount} attendees`);
+        console.log(`Session forcefully closed by ${newLeadershipRole} - was owned by ${oldLeadershipRole} - ${activeSession.attendanceCount} attendees`);
         
         res.json({
             message: `Session forcefully closed. Previous session by ${oldLeadershipRole} has been terminated.`,
@@ -746,13 +746,13 @@ router.post('/session/reset', async (req, res) => {
             return res.status(400).json({ message: 'Leadership role is required' });
         }
         
-        console.log(`🔄 RESET requested by ${leadershipRole} - This will clear ALL attendance records`);
+        console.log(`RESET requested by ${leadershipRole} - This will clear ALL attendance records`);
         
         // Find any active session
         const activeSession = await AttendanceSession.findOne({ isActive: true });
         
         if (activeSession) {
-            console.log(`🔒 Closing active session ${activeSession._id}`);
+            console.log(`Closing active session ${activeSession._id}`);
             activeSession.isActive = false;
             activeSession.endTime = new Date();
             await activeSession.save();
@@ -760,7 +760,7 @@ router.post('/session/reset', async (req, res) => {
         
         // Clear ALL attendance records from ALL sessions
         const deleteResult = await AttendanceRecord.deleteMany({});
-        console.log(`🗑️ Deleted ${deleteResult.deletedCount} attendance records`);
+        console.log(`Deleted ${deleteResult.deletedCount} attendance records`);
         
         // Create a brand new session
         const newSession = new AttendanceSession({
@@ -773,7 +773,7 @@ router.post('/session/reset', async (req, res) => {
         
         await newSession.save();
         
-        console.log(`✨ Created fresh session ${newSession._id} after reset`);
+        console.log(`Created fresh session ${newSession._id} after reset`);
         
         res.json({
             message: 'Session reset successfully - All attendance records cleared',
@@ -802,12 +802,12 @@ router.get('/debug/records/:sessionId', async (req, res) => {
     try {
         const { sessionId } = req.params;
         
-        console.log(`🔍 DEBUG: Fetching ALL records for session: ${sessionId}`);
+        console.log(`DEBUG: Fetching ALL records for session: ${sessionId}`);
         
         const records = await AttendanceRecord.find({ sessionId })
             .sort({ signedAt: 1 });
         
-        console.log(`🔍 DEBUG: Found ${records.length} records:`);
+        console.log(`DEBUG: Found ${records.length} records:`);
         records.forEach((record, index) => {
             console.log(`  ${index + 1}. ${record.userName} - ${record.regNo} - ${record.signedAt}`);
         });
