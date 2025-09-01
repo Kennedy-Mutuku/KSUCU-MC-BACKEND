@@ -101,7 +101,8 @@ router.post('/end-session', async (req, res) => {
 // Get current active session status (for cross-device checking) - MUST come before /session/:ministry
 router.get('/session/status', async (req, res) => {
     try {
-        console.log('Checking session status for cross-device sync...');
+        const requestedRole = req.query.role; // Get role from query parameter
+        console.log(`Checking session status for role: ${requestedRole}`);
         
         // Add no-cache headers to prevent caching issues
         res.set({
@@ -121,7 +122,23 @@ router.get('/session/status', async (req, res) => {
             });
         }
         
-        // Get real-time attendance count
+        // Only return session details if the requesting role owns the session
+        // or if no specific role is provided (for backwards compatibility)
+        if (requestedRole && activeSession.leadershipRole !== requestedRole) {
+            console.log(`Session exists but not owned by ${requestedRole} - owned by ${activeSession.leadershipRole}`);
+            return res.json({
+                message: 'Active session exists but not owned by you',
+                session: {
+                    _id: activeSession._id,
+                    leadershipRole: activeSession.leadershipRole,
+                    isActive: activeSession.isActive,
+                    startTime: activeSession.startTime,
+                    isOwnedByRequester: false
+                }
+            });
+        }
+        
+        // Get real-time attendance count only for session owner
         const attendanceCount = await AttendanceRecord.countDocuments({
             sessionId: activeSession._id
         });
@@ -137,7 +154,8 @@ router.get('/session/status', async (req, res) => {
                 isActive: activeSession.isActive,
                 startTime: activeSession.startTime,
                 endTime: activeSession.endTime,
-                attendanceCount: attendanceCount
+                attendanceCount: attendanceCount,
+                isOwnedByRequester: true
             }
         });
         
@@ -480,12 +498,13 @@ router.post('/sign', verifyToken, async (req, res) => {
     }
 });
 
-// Get attendance records for a session
+// Get attendance records for a session - only return records from sessions owned by the requesting admin
 router.get('/records/:sessionId', async (req, res) => {
     try {
         const { sessionId } = req.params;
+        const requestedRole = req.query.role; // Get role from query parameter
         
-        console.log(`Fetching attendance records for session: ${sessionId}`);
+        console.log(`Fetching attendance records for session: ${sessionId}, requested by: ${requestedRole}`);
         
         // Add no-cache headers for real-time sync
         res.set({
@@ -502,11 +521,33 @@ router.get('/records/:sessionId', async (req, res) => {
             });
         }
         
+        // First, verify that the session exists and check ownership
+        const session = await AttendanceSession.findById(sessionId);
+        
+        if (!session) {
+            return res.status(404).json({ 
+                message: 'Session not found',
+                sessionId 
+            });
+        }
+        
+        // CRITICAL CHANGE: If a role is specified, only return records if the requesting role owns the session
+        // This ensures each admin only sees attendance from their own sessions
+        if (requestedRole && session.leadershipRole !== requestedRole) {
+            console.log(`Access denied: Session ${sessionId} is owned by ${session.leadershipRole}, not ${requestedRole}`);
+            return res.status(403).json({ 
+                message: `Access denied. This session belongs to ${session.leadershipRole}`,
+                sessionOwner: session.leadershipRole,
+                requester: requestedRole
+            });
+        }
+        
+        // Only get records from this specific session (which is already owned by the requesting admin)
         const records = await AttendanceRecord.find({ sessionId })
             .populate('userId', 'username email')
             .sort({ signedAt: -1 }); // Sort newest first (most recently signed appears at top)
         
-        console.log(`Found ${records.length} attendance records for session ${sessionId}`);
+        console.log(`Found ${records.length} attendance records for session ${sessionId} (owned by ${session.leadershipRole})`);
         
         // Log first few records for debugging (newest first due to sort order)
         if (records.length > 0) {
@@ -521,6 +562,7 @@ router.get('/records/:sessionId', async (req, res) => {
             records,
             count: records.length,
             sessionId,
+            sessionOwner: session.leadershipRole,
             timestamp: new Date().toISOString() // Add timestamp for debugging
         });
         
@@ -578,26 +620,27 @@ router.post('/session/open', async (req, res) => {
             });
         }
         
-        // Try to reactivate the most recent session to preserve attendance records
-        const mostRecentSession = await AttendanceSession.findOne({})
+        // Find the most recent session owned by this specific leadership role
+        const mostRecentOwnSession = await AttendanceSession.findOne({
+            leadershipRole: leadershipRole
+        })
             .sort({ createdAt: -1 })
             .limit(1);
         
         let session;
         
-        if (mostRecentSession && !mostRecentSession.isActive) {
-            // Reactivate the most recent session to preserve attendance records
-            console.log(`Reactivating existing session ${mostRecentSession._id} to preserve attendance records`);
+        if (mostRecentOwnSession && !mostRecentOwnSession.isActive) {
+            // Reactivate the admin's own most recent session to preserve THEIR attendance records
+            console.log(`Reactivating ${leadershipRole}'s own session ${mostRecentOwnSession._id} to preserve their attendance records`);
             
-            mostRecentSession.isActive = true;
-            mostRecentSession.leadershipRole = leadershipRole;
-            mostRecentSession.ministry = ministry;
-            mostRecentSession.startTime = new Date(); // Update start time for new session
-            mostRecentSession.endTime = undefined; // Clear end time
+            mostRecentOwnSession.isActive = true;
+            mostRecentOwnSession.ministry = ministry;
+            mostRecentOwnSession.startTime = new Date(); // Update start time for new session
+            mostRecentOwnSession.endTime = undefined; // Clear end time
             
-            session = await mostRecentSession.save();
+            session = await mostRecentOwnSession.save();
         } else {
-            // Create completely new session (first time or no previous sessions)
+            // Create completely new session for this admin (first time or no previous sessions by this admin)
             console.log(`Creating brand new session for ${leadershipRole}`);
             
             session = new AttendanceSession({
