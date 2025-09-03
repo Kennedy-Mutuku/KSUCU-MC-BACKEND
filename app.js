@@ -18,7 +18,8 @@ const cookieParser = require ('cookie-parser');
 let uploadDir;
 
 if (process.env.NODE_ENV === 'production') {
-    uploadDir = '/var/www/uploads';
+    // Use local uploads directory instead of /var/www/uploads for now
+    uploadDir = path.join(__dirname, 'uploads');
 } else {
     uploadDir = path.join(__dirname, 'uploads');
 }
@@ -82,7 +83,8 @@ app.use('/attendance', attendanceRoutes);
 
 // Serve uploaded files statically
 if (process.env.NODE_ENV === 'production') {
-    app.use('/uploads', express.static('/var/www/uploads'));
+    // Use local uploads directory instead of /var/www/uploads for now
+    app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 } else {
     app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 }
