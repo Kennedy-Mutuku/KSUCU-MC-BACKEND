@@ -40,21 +40,45 @@ const corsOptions = {
     origin: function(origin, callback) {
       console.log(`CORS Request from origin: "${origin}", NODE_ENV: "${process.env.NODE_ENV}"`);
       
-      const allowedOrigins = process.env.NODE_ENV === 'development'
-      ? ['http://localhost:5173','http://localhost:5174','http://localhost:5175'] // Add your development origins here
-      : ['https://www.ksucu-mc.co.ke', 'https://ksucu-mc.co.ke'];
-      
-      console.log(`Allowed origins:`, allowedOrigins);
-  
-      if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
-        console.log(`CORS allowed for origin: ${origin}`);
-        callback(null, true);
+      // More permissive CORS for production debugging
+      if (process.env.NODE_ENV === 'development') {
+        const devOrigins = ['http://localhost:5173','http://localhost:5174','http://localhost:5175'];
+        console.log(`Dev allowed origins:`, devOrigins);
+        
+        if (devOrigins.includes(origin) || !origin) {
+          console.log(`CORS allowed for dev origin: ${origin}`);
+          callback(null, true);
+        } else {
+          console.log(`CORS blocked for dev origin: ${origin}`);
+          callback(new Error('Not allowed by CORS'));
+        }
       } else {
-        console.log(`CORS blocked for origin: ${origin}`);
-        callback(new Error('Not allowed by CORS'));
+        // Production: be more permissive to fix the login issues
+        const prodOrigins = [
+          'https://www.ksucu-mc.co.ke', 
+          'https://ksucu-mc.co.ke',
+          'http://www.ksucu-mc.co.ke',
+          'http://ksucu-mc.co.ke'
+        ];
+        
+        console.log(`Production allowed origins:`, prodOrigins);
+        console.log(`Checking if "${origin}" is in allowed origins...`);
+        
+        // More flexible matching for production
+        if (!origin || 
+            prodOrigins.includes(origin) ||
+            (origin && origin.includes('ksucu-mc.co.ke'))) {
+          console.log(`CORS allowed for production origin: ${origin}`);
+          callback(null, true);
+        } else {
+          console.log(`CORS blocked for production origin: ${origin}`);
+          console.log(`Origin type: ${typeof origin}, value: "${origin}"`);
+          callback(new Error('Not allowed by CORS'));
+        }
       }
     },
     credentials: true, // Allow credentials (cookies) to be sent
+    optionsSuccessStatus: 200 // Some legacy browsers choke on 204
 };
 app.use(cors(corsOptions));
 

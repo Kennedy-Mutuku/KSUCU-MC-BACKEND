@@ -13,6 +13,17 @@ exports.login = async (req, res) => {
   try {
     let { email, password } = req.body;
     
+    // Enhanced logging for debugging device-specific issues
+    console.log('🔐 LOGIN ATTEMPT:', {
+      email: email?.toLowerCase(),
+      passwordProvided: !!password,
+      userAgent: req.headers['user-agent'],
+      origin: req.headers.origin,
+      ip: req.ip || req.connection.remoteAddress,
+      referer: req.headers.referer,
+      timestamp: new Date().toISOString()
+    });
+    
     email = email.toLowerCase();
 
     if (!email || !password) {
@@ -32,20 +43,34 @@ exports.login = async (req, res) => {
     }
     const token = jwt.sign({ userId: user._id }, process.env.JWT_USER_SECRET, { expiresIn: '30d' }); // 30 days expiry
 
-    res.cookie('user_s', token, {
+    // Enhanced cookie settings for better cross-device compatibility
+    const cookieOptions = {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days in milliseconds
       sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax',
-    });
+      // Add domain if in production for better cookie sharing
+      ...(process.env.NODE_ENV === 'production' && { domain: '.ksucu-mc.co.ke' })
+    };
+    
+    console.log('🍪 Setting cookie with options:', cookieOptions);
+    console.log('🍪 User agent:', req.headers['user-agent']);
+    console.log('🍪 Origin:', req.headers.origin);
+    
+    res.cookie('user_s', token, cookieOptions);
 
     // Sending a success response
      res.status(200).json({ message: 'Login successful' });
     
   } catch (error) {
-    console.log(error);
+    console.log('Login error:', error);
     
-    res.status(500).json({ message: error });
+    // Ensure we send a string message, not an error object
+    const errorMessage = error instanceof Error ? error.message : 'Internal server error';
+    res.status(500).json({ 
+      message: errorMessage,
+      error: errorMessage 
+    });
   }
   
 }

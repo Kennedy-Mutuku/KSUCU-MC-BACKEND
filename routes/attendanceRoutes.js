@@ -104,11 +104,14 @@ router.get('/session/status', async (req, res) => {
         const requestedRole = req.query.role; // Get role from query parameter
         console.log(`Checking session status for role: ${requestedRole}`);
         
-        // Add no-cache headers to prevent caching issues
+        // Add aggressive no-cache headers to prevent caching issues across all devices
         res.set({
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
             'Pragma': 'no-cache',
-            'Expires': '0'
+            'Expires': '0',
+            'Last-Modified': new Date().toUTCString(),
+            'ETag': `"${Date.now()}-${Math.random()}"`, // Force unique response
+            'Vary': 'Origin, Accept-Encoding'
         });
         
         // Find any active session (only one can be active at a time)
@@ -245,16 +248,38 @@ router.post('/sign-anonymous', async (req, res) => {
             userType: userType || 'student',
             hasPhoneNumber: !!phoneNumber,
             hasSignature: !!signature,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            userAgent: req.headers['user-agent'],
+            origin: req.headers.origin,
+            referer: req.headers.referer,
+            ip: req.ip || req.connection.remoteAddress
         });
         console.log('Raw regNo before processing:', JSON.stringify(regNo));
         
         // Validate required fields based on user type
         if (!sessionId) {
-            const errorMessage = 'Session ID is required';
+            const errorMessage = 'Session ID is required. Please refresh the page and try again.';
+            console.log('❌ Missing sessionId in request:', req.body);
             return res.status(400).json({ 
                 message: errorMessage,
-                error: errorMessage
+                error: errorMessage,
+                debug: {
+                    receivedSessionId: sessionId,
+                    requestBody: req.body
+                }
+            });
+        }
+        
+        if (sessionId === 'null' || sessionId === 'undefined') {
+            const errorMessage = 'Invalid session ID received. Please refresh the page and try again.';
+            console.log('❌ Invalid sessionId format:', sessionId);
+            return res.status(400).json({ 
+                message: errorMessage,
+                error: errorMessage,
+                debug: {
+                    receivedSessionId: sessionId,
+                    type: typeof sessionId
+                }
             });
         }
         
