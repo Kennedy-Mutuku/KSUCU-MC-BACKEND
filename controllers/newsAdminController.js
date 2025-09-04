@@ -205,9 +205,13 @@ exports.login = async (req, res) => {
 // Update news data via JSON (for the new admin interface)
 exports.updateNewsData = async (req, res) => {
     try {
-        const { title, body, imageUrl, eventDate, eventTime } = req.body;
+        const { title, body, eventDate, eventTime } = req.body;
 
-        if (!title || !body) {
+        // Trim whitespace and check for empty values
+        const trimmedTitle = title ? title.trim() : '';
+        const trimmedBody = body ? body.trim() : '';
+        
+        if (!trimmedTitle || !trimmedBody) {
             return res.status(400).json({ message: 'Title and body are required' });
         }
 
@@ -220,17 +224,15 @@ exports.updateNewsData = async (req, res) => {
                 email: 'admin@ksucu.com', // Placeholder
                 phone: '0000000000', // Placeholder
                 password: 'placeholder', // Placeholder
-                title,
-                body,
-                imageUrl: imageUrl || '',
+                title: trimmedTitle,
+                body: trimmedBody,
                 eventDate: eventDate ? new Date(eventDate) : null,
                 eventTime: eventTime || null
             });
         } else {
             // Update existing record
-            user.title = title;
-            user.body = body;
-            user.imageUrl = imageUrl || '';
+            user.title = trimmedTitle;
+            user.body = trimmedBody;
             user.eventDate = eventDate ? new Date(eventDate) : null;
             user.eventTime = eventTime || null;
         }
@@ -242,7 +244,6 @@ exports.updateNewsData = async (req, res) => {
             data: {
                 title: user.title,
                 body: user.body,
-                imageUrl: user.imageUrl,
                 eventDate: user.eventDate,
                 eventTime: user.eventTime
             }
@@ -257,7 +258,7 @@ exports.updateNewsData = async (req, res) => {
 exports.getNewsData = async (req, res) => {
     try {
         // Fetch the user's news data (without verifying userId)
-        const user = await User.findOne().select('title body imageUrl eventDate eventTime');
+        const user = await User.findOne().select('title body eventDate eventTime');
 
         if (!user) {
             return res.status(404).json({ message: 'No news available' });
@@ -267,7 +268,6 @@ exports.getNewsData = async (req, res) => {
         res.status(200).json({
             title: user.title,
             body: user.body,
-            imageUrl: user.imageUrl,
             eventDate: user.eventDate,
             eventTime: user.eventTime
         });

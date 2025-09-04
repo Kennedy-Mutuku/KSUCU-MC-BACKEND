@@ -250,13 +250,24 @@ router.post('/sign-anonymous', async (req, res) => {
         console.log('Raw regNo before processing:', JSON.stringify(regNo));
         
         // Validate required fields based on user type
-        if (!sessionId || !ministry || !name) {
-            const errorMessage = 'Session ID, ministry, and name are required';
+        if (!sessionId) {
+            const errorMessage = 'Session ID is required';
             return res.status(400).json({ 
                 message: errorMessage,
                 error: errorMessage
             });
         }
+        
+        if (!name) {
+            const errorMessage = 'Name is required';
+            return res.status(400).json({ 
+                message: errorMessage,
+                error: errorMessage
+            });
+        }
+        
+        // Set default ministry if not provided
+        const finalMinistry = ministry || 'General';
         
         // For students, require additional fields
         if (userType === 'student' && (!regNo || !year || !course)) {
@@ -331,7 +342,7 @@ router.post('/sign-anonymous', async (req, res) => {
             year: parseInt(year) || 0,
             course: course?.trim() || 'N/A',
             userType: userType || 'student',
-            ministry,
+            ministry: finalMinistry,
             phoneNumber: phoneNumber?.trim() || '',
             signature: signature || '',
             signedAt: new Date()
@@ -344,7 +355,7 @@ router.post('/sign-anonymous', async (req, res) => {
             year: parseInt(year) || 0,
             course: course?.trim() || 'N/A',
             userType: userType || 'student',
-            ministry: ministry
+            ministry: finalMinistry
         });
         
         await attendanceRecord.save();
@@ -353,7 +364,7 @@ router.post('/sign-anonymous', async (req, res) => {
         session.attendanceCount += 1;
         await session.save();
         
-        console.log(`SUCCESS: Anonymous attendance signed: ${name.trim()} (${regNoToCheck}) for ${ministry}`);
+        console.log(`SUCCESS: Anonymous attendance signed: ${name.trim()} (${regNoToCheck}) for ${finalMinistry}`);
         console.log(`   Session ID: ${sessionId}`);
         console.log(`   Record ID: ${attendanceRecord._id}`);
         console.log(`   Total attendees in session: ${session.attendanceCount}`);
