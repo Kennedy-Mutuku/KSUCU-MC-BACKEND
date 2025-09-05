@@ -93,10 +93,14 @@ exports.logout = async (req, res) => {
 exports.getResidences = async (req, res) => {
     try {
         const residences = await Residence.find({ isActive: true }).sort({ name: 1 });
+        console.log(`Fetching residences: Found ${residences.length} active residences`);
         res.status(200).json(residences);
     } catch (error) {
         console.error('Error fetching residences:', error);
-        res.status(500).json({ error: 'Failed to fetch residences' });
+        res.status(500).json({ 
+            error: 'Failed to fetch residences',
+            message: error.message 
+        });
     }
 };
 
