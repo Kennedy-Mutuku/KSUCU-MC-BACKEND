@@ -55,11 +55,13 @@ exports.login = async (req, res) => {
 
         const token = jwt.sign({ userId: user._id }, process.env.JWT_USER_SECRET, { expiresIn: '1h' });
 
+        const isDevelopment = process.env.NODE_ENV === 'development' || process.env.NODE_ENV !== 'production';
+        
         res.cookie('bs_token', token, {
             httpOnly: true,
-            secure: true, // Set to true in production
-            maxAge: 1 * 60 * 60 * 1000, // 3 hours
-            sameSite: 'None', // Required for cross-site cookies
+            secure: !isDevelopment, // false in development, true in production
+            maxAge: 1 * 60 * 60 * 1000, // 1 hour
+            sameSite: isDevelopment ? 'lax' : 'None', // lax in development, None in production
         });
 
         res.status(200).json({ message: 'Login successful' });

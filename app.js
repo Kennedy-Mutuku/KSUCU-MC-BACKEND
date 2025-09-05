@@ -165,46 +165,72 @@ const User = require('./models/user');
 io.use(async (socket, next) => {
   try {
     const token = socket.handshake.auth.token;
-    if (!token) {
-      return next(new Error('Authentication error: No token'));
+    
+    // Allow guest connections
+    if (!token || token === 'guest') {
+      socket.userId = null;
+      socket.username = 'Guest';
+      next();
+      return;
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_USER_SECRET);
-    const user = await User.findById(decoded.userId);
-    if (!user) {
-      return next(new Error('Authentication error: User not found'));
+    // Try to authenticate if token is provided
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_USER_SECRET);
+      const user = await User.findById(decoded.userId);
+      if (user) {
+        socket.userId = decoded.userId;
+        socket.username = user.username;
+      } else {
+        // User not found, treat as guest
+        socket.userId = null;
+        socket.username = 'Guest';
+      }
+    } catch (jwtError) {
+      // Invalid token, treat as guest
+      socket.userId = null;
+      socket.username = 'Guest';
     }
-
-    socket.userId = decoded.userId;
-    socket.username = user.username;
+    
     next();
   } catch (err) {
-    next(new Error('Authentication error: Invalid token'));
+    // Any other error, still allow as guest
+    socket.userId = null;
+    socket.username = 'Guest';
+    next();
   }
 });
 
 io.on('connection', async (socket) => {
   console.log(`User ${socket.username} connected with socket ${socket.id}`);
 
-  // Add user to online users
+  // Add user to online users (only for authenticated users)
   try {
-    await OnlineUsers.findOneAndUpdate(
-      { userId: socket.userId },
-      {
-        userId: socket.userId,
-        username: socket.username,
-        socketId: socket.id,
-        status: 'online',
-        lastSeen: new Date()
-      },
-      { upsert: true, new: true }
-    );
+    if (socket.userId) {
+      await OnlineUsers.findOneAndUpdate(
+        { userId: socket.userId },
+        {
+          userId: socket.userId,
+          username: socket.username,
+          socketId: socket.id,
+          status: 'online',
+          lastSeen: new Date()
+        },
+        { upsert: true, new: true }
+      );
 
-    // Broadcast updated online users
-    const onlineUsers = await OnlineUsers.find({ status: 'online' })
-      .populate('userId', 'username')
-      .select('username status lastSeen');
-    io.emit('onlineUsersUpdate', onlineUsers);
+      // Broadcast updated online users
+      const onlineUsers = await OnlineUsers.find({ status: 'online' })
+        .populate('userId', 'username')
+        .select('username status lastSeen');
+      io.emit('onlineUsersUpdate', onlineUsers);
+    } else {
+      // For guest users, just broadcast current online users
+      const onlineUsers = await OnlineUsers.find({ status: 'online' })
+        .populate('userId', 'username')
+        .select('username status lastSeen');
+      io.emit('onlineUsersUpdate', onlineUsers);
+    }
   } catch (error) {
     console.error('Error updating online users:', error);
   }
@@ -297,36 +323,39 @@ io.on('connection', async (socket) => {
     console.log(`User ${socket.username} disconnected`);
 
     try {
-      // Update user status to offline
-      await OnlineUsers.findOneAndUpdate(
-        { userId: socket.userId },
-        { 
-          status: 'offline',
-          lastSeen: new Date()
-        }
-      );
-
-      // Remove from online users after a delay (in case of reconnection)
-      setTimeout(async () => {
-        try {
-          const stillOnline = await OnlineUsers.findOne({
-            userId: socket.userId,
-            status: 'online'
-          });
-
-          if (!stillOnline) {
-            await OnlineUsers.findOneAndDelete({ userId: socket.userId });
+      // Only handle disconnect for authenticated users
+      if (socket.userId) {
+        // Update user status to offline
+        await OnlineUsers.findOneAndUpdate(
+          { userId: socket.userId },
+          { 
+            status: 'offline',
+            lastSeen: new Date()
           }
+        );
 
-          // Broadcast updated online users
-          const onlineUsers = await OnlineUsers.find({ status: 'online' })
-            .populate('userId', 'username')
-            .select('username status lastSeen');
-          io.emit('onlineUsersUpdate', onlineUsers);
-        } catch (error) {
-          console.error('Error cleaning up offline user:', error);
-        }
-      }, 30000); // 30 seconds delay
+        // Remove from online users after a delay (in case of reconnection)
+        setTimeout(async () => {
+          try {
+            const stillOnline = await OnlineUsers.findOne({
+              userId: socket.userId,
+              status: 'online'
+            });
+
+            if (!stillOnline) {
+              await OnlineUsers.findOneAndDelete({ userId: socket.userId });
+            }
+
+            // Broadcast updated online users
+            const onlineUsers = await OnlineUsers.find({ status: 'online' })
+              .populate('userId', 'username')
+              .select('username status lastSeen');
+            io.emit('onlineUsersUpdate', onlineUsers);
+          } catch (error) {
+            console.error('Error cleaning up offline user:', error);
+          }
+        }, 30000); // 30 seconds delay
+      }
 
     } catch (error) {
       console.error('Error handling disconnect:', error);
