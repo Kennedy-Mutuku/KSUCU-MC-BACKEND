@@ -48,6 +48,25 @@ const chatMessageSchema = new mongoose.Schema({
     type: Boolean, 
     default: false 
   },
+  deletedFor: [{
+    userId: { 
+      type: mongoose.Schema.Types.Mixed,  // Allow both ObjectId and string
+      required: false
+    },
+    username: {
+      type: String,
+      required: false
+    },
+    deletedAt: { 
+      type: Date, 
+      default: Date.now 
+    }
+  }],
+  status: {
+    type: String,
+    enum: ['sending', 'sent', 'delivered', 'read'],
+    default: 'sending'
+  },
   replyTo: { 
     type: mongoose.Schema.Types.ObjectId, 
     ref: 'ChatMessage', 

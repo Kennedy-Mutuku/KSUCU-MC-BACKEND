@@ -24,4 +24,10 @@ router.put('/edit/:messageId', chatController.editMessage);
 // Delete message
 router.delete('/delete/:messageId', chatController.deleteMessage);
 
+// Delete message for specific user (allow guest access for demo purposes)
+router.delete('/delete-for-me/:messageId', chatController.deleteMessageForMe);
+
+// Update message status
+router.put('/status/:messageId', chatController.updateMessageStatus);
+
 module.exports = router;

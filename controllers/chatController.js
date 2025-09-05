@@ -207,6 +207,58 @@ exports.deleteMessage = async (req, res) => {
   }
 };
 
+// Delete message for specific user only
+exports.deleteMessageForMe = async (req, res) => {
+  try {
+    const { messageId } = req.params;
+    const userId = req.user ? req.user.userId : req.body.userId;
+
+    const chatMessage = await ChatMessage.findById(messageId);
+    if (!chatMessage) {
+      return res.status(404).json({ success: false, message: 'Message not found' });
+    }
+
+    // Add user to deletedFor array if not already there
+    if (!chatMessage.deletedFor.some(del => del.userId.toString() === userId)) {
+      chatMessage.deletedFor.push({ userId, deletedAt: new Date() });
+      await chatMessage.save();
+    }
+
+    res.json({ success: true, message: 'Message deleted for user' });
+  } catch (error) {
+    console.error('Error deleting message for user:', error);
+    res.status(500).json({ success: false, message: 'Failed to delete message' });
+  }
+};
+
+// Update message status
+exports.updateMessageStatus = async (req, res) => {
+  try {
+    const { messageId } = req.params;
+    const { status } = req.body;
+    const userId = req.user ? req.user.userId : null;
+
+    const chatMessage = await ChatMessage.findById(messageId);
+    if (!chatMessage) {
+      return res.status(404).json({ success: false, message: 'Message not found' });
+    }
+
+    // Only allow sender to update status or specific status updates
+    if (userId && chatMessage.senderId.toString() !== userId && 
+        !['delivered', 'read'].includes(status)) {
+      return res.status(403).json({ success: false, message: 'Not authorized to update this message status' });
+    }
+
+    chatMessage.status = status;
+    await chatMessage.save();
+
+    res.json({ success: true, message: 'Message status updated' });
+  } catch (error) {
+    console.error('Error updating message status:', error);
+    res.status(500).json({ success: false, message: 'Failed to update message status' });
+  }
+};
+
 // Get online users
 exports.getOnlineUsers = async (req, res) => {
   try {

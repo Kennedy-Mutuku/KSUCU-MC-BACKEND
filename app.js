@@ -259,10 +259,15 @@ io.on('connection', async (socket) => {
         message,
         messageType,
         replyTo: replyTo || null,
+        status: 'sending'
       });
 
       await newMessage.save();
       await newMessage.populate('replyTo', 'message senderName timestamp');
+
+      // Update status to 'sent' immediately after successful save
+      newMessage.status = 'sent';
+      await newMessage.save();
 
       // Broadcast message to all users in the chat
       io.to('community-chat').emit('newMessage', newMessage);
@@ -304,7 +309,17 @@ io.on('connection', async (socket) => {
       const { messageId } = data;
       
       const chatMessage = await ChatMessage.findById(messageId);
-      if (!chatMessage || chatMessage.senderId.toString() !== socket.userId) {
+      if (!chatMessage) {
+        socket.emit('error', { message: 'Message not found' });
+        return;
+      }
+
+      // Check authorization - handle both authenticated users and guest users
+      const isAuthorized = 
+        (socket.userId && chatMessage.senderId && chatMessage.senderId.toString() === socket.userId) ||
+        (!socket.userId && chatMessage.senderName === socket.username);
+      
+      if (!isAuthorized) {
         socket.emit('error', { message: 'Not authorized to delete this message' });
         return;
       }
@@ -317,6 +332,77 @@ io.on('connection', async (socket) => {
     } catch (error) {
       console.error('Error deleting message:', error);
       socket.emit('error', { message: 'Failed to delete message' });
+    }
+  });
+
+  // Handle delete message for specific user
+  socket.on('deleteMessageForMe', async (data) => {
+    try {
+      const { messageId } = data;
+      
+      const chatMessage = await ChatMessage.findById(messageId);
+      if (!chatMessage) {
+        socket.emit('error', { message: 'Message not found' });
+        return;
+      }
+
+      // Check if message already deleted for this user
+      const alreadyDeleted = chatMessage.deletedFor.some(del => {
+        if (socket.userId) {
+          return del.userId && del.userId.toString() === socket.userId;
+        } else {
+          return del.username === socket.username;
+        }
+      });
+
+      if (!alreadyDeleted) {
+        // Add user to deletedFor array based on authentication status
+        if (socket.userId) {
+          chatMessage.deletedFor.push({ 
+            userId: socket.userId, 
+            deletedAt: new Date() 
+          });
+        } else {
+          chatMessage.deletedFor.push({ 
+            username: socket.username, 
+            deletedAt: new Date() 
+          });
+        }
+        await chatMessage.save();
+      }
+
+      // Only notify the specific user
+      socket.emit('messageDeletedForUser', { 
+        messageId, 
+        userId: socket.userId,
+        username: socket.username 
+      });
+    } catch (error) {
+      console.error('Error deleting message for user:', error);
+      socket.emit('error', { message: 'Failed to delete message' });
+    }
+  });
+
+  // Handle message status update
+  socket.on('updateMessageStatus', async (data) => {
+    try {
+      const { messageId, status } = data;
+      
+      const chatMessage = await ChatMessage.findById(messageId);
+      if (!chatMessage) {
+        socket.emit('error', { message: 'Message not found' });
+        return;
+      }
+
+      // Update message status
+      chatMessage.status = status;
+      await chatMessage.save();
+
+      // Broadcast status update to all users
+      io.to('community-chat').emit('messageStatusUpdated', { messageId, status });
+    } catch (error) {
+      console.error('Error updating message status:', error);
+      socket.emit('error', { message: 'Failed to update message status' });
     }
   });
 
