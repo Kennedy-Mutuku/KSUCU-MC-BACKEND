@@ -1,7 +1,8 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const bsUsers = require('../models/biblestudy'); 
-const bsAdmin = require('../models/bsAdmin')
+const bsAdmin = require('../models/bsAdmin');
+const Residence = require('../models/residence');
 
 // User signup
 exports.signup = async (req, res) => {
@@ -85,5 +86,104 @@ exports.logout = async (req, res) => {
     } catch (error) {
       console.error('Error during logout:', error);
       return res.status(500).json({ message: 'An error occurred while processing your request' });
+    }
+};
+
+// Get all residences (public route for user side)
+exports.getResidences = async (req, res) => {
+    try {
+        const residences = await Residence.find({ isActive: true }).sort({ name: 1 });
+        res.status(200).json(residences);
+    } catch (error) {
+        console.error('Error fetching residences:', error);
+        res.status(500).json({ error: 'Failed to fetch residences' });
+    }
+};
+
+// Add new residence (admin only)
+exports.addResidence = async (req, res) => {
+    try {
+        const { name, description } = req.body;
+        
+        if (!name || !name.trim()) {
+            return res.status(400).json({ message: 'Residence name is required' });
+        }
+
+        const existingResidence = await Residence.findOne({ 
+            name: { $regex: new RegExp(`^${name.trim()}$`, 'i') } 
+        });
+
+        if (existingResidence) {
+            return res.status(400).json({ message: 'Residence with this name already exists' });
+        }
+
+        const newResidence = new Residence({
+            name: name.trim(),
+            description: description || ''
+        });
+
+        await newResidence.save();
+        res.status(201).json({ message: 'Residence added successfully', residence: newResidence });
+    } catch (error) {
+        console.error('Error adding residence:', error);
+        res.status(500).json({ error: 'Failed to add residence' });
+    }
+};
+
+// Update residence (admin only)
+exports.updateResidence = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name, description, isActive } = req.body;
+
+        if (!name || !name.trim()) {
+            return res.status(400).json({ message: 'Residence name is required' });
+        }
+
+        const existingResidence = await Residence.findOne({ 
+            name: { $regex: new RegExp(`^${name.trim()}$`, 'i') },
+            _id: { $ne: id }
+        });
+
+        if (existingResidence) {
+            return res.status(400).json({ message: 'Residence with this name already exists' });
+        }
+
+        const updatedResidence = await Residence.findByIdAndUpdate(
+            id,
+            { 
+                name: name.trim(),
+                description: description || '',
+                isActive: isActive !== undefined ? isActive : true
+            },
+            { new: true }
+        );
+
+        if (!updatedResidence) {
+            return res.status(404).json({ message: 'Residence not found' });
+        }
+
+        res.status(200).json({ message: 'Residence updated successfully', residence: updatedResidence });
+    } catch (error) {
+        console.error('Error updating residence:', error);
+        res.status(500).json({ error: 'Failed to update residence' });
+    }
+};
+
+// Delete residence (admin only)
+exports.deleteResidence = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const deletedResidence = await Residence.findByIdAndDelete(id);
+
+        if (!deletedResidence) {
+            return res.status(404).json({ message: 'Residence not found' });
+        }
+
+        res.status(200).json({ message: 'Residence deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting residence:', error);
+        res.status(500).json({ error: 'Failed to delete residence' });
     }
 };

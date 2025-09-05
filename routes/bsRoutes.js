@@ -12,5 +12,11 @@ router.post('/logout', bsAuthMiddleware, bsAdmin.logout);
 
 router.get('/users', bsAuthMiddleware, bsAdmin.getSoulsSaved);
 
+// Residence management routes
+router.get('/residences', bsAdmin.getResidences);
+router.post('/residences', bsAuthMiddleware, bsAdmin.addResidence);
+router.put('/residences/:id', bsAuthMiddleware, bsAdmin.updateResidence);
+router.delete('/residences/:id', bsAuthMiddleware, bsAdmin.deleteResidence);
+
 module.exports = router;
 
