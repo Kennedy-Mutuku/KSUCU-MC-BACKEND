@@ -215,6 +215,7 @@ exports.getUserData = async (req, res) => {
     // Only return necessary user data, you can customize this response as needed
 
     const userData = {
+      _id: user._id,
       username: user.username,
       email: user.email,
       yos: user.yos,
