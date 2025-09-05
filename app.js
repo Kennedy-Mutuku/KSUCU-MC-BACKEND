@@ -165,11 +165,15 @@ const User = require('./models/user');
 io.use(async (socket, next) => {
   try {
     const token = socket.handshake.auth.token;
+    const guestName = socket.handshake.auth.guestName;
+    console.log(`🔐 Socket auth - Token received: ${token ? 'Yes' : 'No'}, Token value: ${token}`);
+    console.log(`👤 Socket auth - Guest name received: ${guestName ? 'Yes' : 'No'}, Name: ${guestName}`);
     
     // Allow guest connections
     if (!token || token === 'guest') {
       socket.userId = null;
-      socket.username = 'Guest';
+      socket.username = guestName || 'Guest';
+      console.log(`👤 Socket auth - User connecting as ${socket.username} (${guestName ? 'named guest' : 'anonymous guest'})`);
       next();
       return;
     }
@@ -177,19 +181,24 @@ io.use(async (socket, next) => {
     // Try to authenticate if token is provided
     try {
       const decoded = jwt.verify(token, process.env.JWT_USER_SECRET);
+      console.log('🔍 Socket auth - JWT decoded successfully, userId:', decoded.userId);
+      
       const user = await User.findById(decoded.userId);
       if (user) {
         socket.userId = decoded.userId;
         socket.username = user.username;
+        console.log(`✅ Socket auth - Authenticated user: ${user.username} (ID: ${decoded.userId})`);
       } else {
         // User not found, treat as guest
         socket.userId = null;
         socket.username = 'Guest';
+        console.log('❌ Socket auth - User not found in database, treating as Guest');
       }
     } catch (jwtError) {
       // Invalid token, treat as guest
       socket.userId = null;
       socket.username = 'Guest';
+      console.log('❌ Socket auth - JWT verification failed:', jwtError.message);
     }
     
     next();
@@ -197,6 +206,7 @@ io.use(async (socket, next) => {
     // Any other error, still allow as guest
     socket.userId = null;
     socket.username = 'Guest';
+    console.log('❌ Socket auth - Unexpected error:', err.message);
     next();
   }
 });
