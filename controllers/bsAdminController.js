@@ -80,6 +80,38 @@ exports.getSoulsSaved = async (req, res) => {
       }
 };
 
+// Delete a Bible Study user (admin only)
+exports.deleteUser = async (req, res) => {
+    try {
+        const { phone } = req.params;
+        
+        if (!phone) {
+            return res.status(400).json({ message: 'Phone number is required' });
+        }
+
+        const deletedUser = await bsUsers.findOneAndDelete({ phone });
+
+        if (!deletedUser) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        console.log(`Bible Study user deleted: ${deletedUser.name} (${deletedUser.phone})`);
+        res.status(200).json({ 
+            message: 'User removed from Bible Study successfully',
+            deletedUser: {
+                name: deletedUser.name,
+                phone: deletedUser.phone
+            }
+        });
+    } catch (error) {
+        console.error('Error deleting Bible Study user:', error);
+        res.status(500).json({ 
+            error: 'Failed to delete user',
+            message: error.message 
+        });
+    }
+};
+
 exports.logout = async (req, res) => {
     try {
       res.clearCookie('token'); 
