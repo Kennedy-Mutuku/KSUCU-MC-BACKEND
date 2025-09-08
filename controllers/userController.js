@@ -272,25 +272,59 @@ exports.updateUserData = async (req, res) => {
 
 exports.logout = async (req, res) => {
   try {
-    // Clear both cookies with proper options
-    res.clearCookie('token', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax',
-      path: '/'
-    }); 
+    console.log('🚪 LOGOUT REQUEST:', {
+      cookies: req.cookies,
+      headers: req.headers,
+      userAgent: req.headers['user-agent'],
+      timestamp: new Date().toISOString()
+    });
     
-    res.clearCookie('user_s', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax',
-      path: '/'
-    }); 
+    // Clear all possible cookie variations with different options
+    const cookiesToClear = ['token', 'user_s', 'loginToken', 'sessionToken', 'authToken'];
+    const cookieOptions = [
+      // Standard options
+      {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax',
+        path: '/'
+      },
+      // Without httpOnly for client-side clearing
+      {
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax',
+        path: '/'
+      },
+      // With domain for production
+      ...(process.env.NODE_ENV === 'production' ? [{
+        httpOnly: true,
+        secure: true,
+        sameSite: 'None',
+        path: '/',
+        domain: '.ksucu-mc.co.ke'
+      }, {
+        secure: true,
+        sameSite: 'None',
+        path: '/',
+        domain: '.ksucu-mc.co.ke'
+      }] : [])
+    ];
     
-    console.log('User logged out successfully');
-    return res.status(200).json({ message: 'Logout successful' });
+    // Clear each cookie with all possible option combinations
+    cookiesToClear.forEach(cookieName => {
+      cookieOptions.forEach(options => {
+        res.clearCookie(cookieName, options);
+      });
+    });
+    
+    console.log('🍪 Cleared all cookies with multiple option combinations');
+    return res.status(200).json({ 
+      message: 'Logout successful',
+      clearedCookies: cookiesToClear,
+      timestamp: new Date().toISOString()
+    });
   } catch (error) {
-    console.error('Error during logout:', error);
+    console.error('❌ Error during logout:', error);
     return res.status(500).json({ message: 'An error occurred while processing your request' });
   }
 };
