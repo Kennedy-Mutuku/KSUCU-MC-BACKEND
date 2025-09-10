@@ -35,6 +35,11 @@ mediaItemSchema.pre('save', function(next) {
   next();
 });
 
+// Clear any existing model to avoid conflicts
+if (mongoose.models.MediaItem) {
+  delete mongoose.models.MediaItem;
+}
+
 const MediaItem = mongoose.model('MediaItem', mediaItemSchema);
 
 module.exports = MediaItem;
