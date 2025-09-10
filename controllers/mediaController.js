@@ -1,4 +1,40 @@
 const MediaItem = require('../models/MediaItem');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+
+// Configure multer for media image uploads
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadDir = path.join(__dirname, '../uploads/media');
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, 'media-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({
+  storage: storage,
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedMimes = [
+      'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'
+    ];
+    
+    if (allowedMimes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are supported'), false);
+    }
+  }
+}).single('image');
 
 exports.getAllMediaItems = async (req, res) => {
   try {
@@ -104,6 +140,42 @@ exports.deleteMediaItem = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error deleting media item',
+      error: error.message
+    });
+  }
+};
+
+exports.uploadImage = async (req, res) => {
+  try {
+    upload(req, res, async (err) => {
+      if (err) {
+        console.error('Upload error:', err);
+        return res.status(400).json({ 
+          success: false, 
+          message: err.message 
+        });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'No image file uploaded' 
+        });
+      }
+
+      const imageUrl = `/uploads/media/${req.file.filename}`;
+      
+      res.status(200).json({
+        success: true,
+        imageUrl: imageUrl,
+        message: 'Image uploaded successfully'
+      });
+    });
+  } catch (error) {
+    console.error('Error uploading image:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error uploading image',
       error: error.message
     });
   }

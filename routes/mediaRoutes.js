@@ -13,4 +13,6 @@ router.delete('/media-items/:id', authenticateAdmin, mediaController.deleteMedia
 
 router.post('/media-items/migrate', authenticateAdmin, mediaController.migrateFromLocalStorage);
 
+router.post('/media-items/upload-image', authenticateAdmin, mediaController.uploadImage);
+
 module.exports = router;
