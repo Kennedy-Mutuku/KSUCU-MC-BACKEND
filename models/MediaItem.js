@@ -40,6 +40,6 @@ if (mongoose.models.MediaItem) {
   delete mongoose.models.MediaItem;
 }
 
-const MediaItem = mongoose.model('MediaItem', mediaItemSchema);
+const MediaItem = mongoose.model('MediaItem', mediaItemSchema, 'mediaitems');
 
 module.exports = MediaItem;
