@@ -17,7 +17,4 @@ router.put('/requisitions/:id', requisitionController.updateRequisition);
 // Update requisition status
 router.patch('/requisitions/:id/status', requisitionController.updateStatus);
 
-// Delete requisition
-router.delete('/requisitions/:id', requisitionController.deleteRequisition);
-
 module.exports = router;

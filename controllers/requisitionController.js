@@ -56,20 +56,6 @@ const requisitionController = {
     }
   },
 
-  // Delete requisition
-  deleteRequisition: async (req, res) => {
-    try {
-      const deletedRequisition = await Requisition.findByIdAndDelete(req.params.id);
-      if (!deletedRequisition) {
-        return res.status(404).json({ error: 'Requisition not found' });
-      }
-      res.json({ message: 'Requisition deleted successfully' });
-    } catch (error) {
-      console.error('Error deleting requisition:', error);
-      res.status(500).json({ error: 'Failed to delete requisition' });
-    }
-  },
-
   // Update requisition status
   updateStatus: async (req, res) => {
     try {
