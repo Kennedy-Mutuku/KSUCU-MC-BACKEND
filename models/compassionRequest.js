@@ -1,6 +1,10 @@
 const mongoose = require('mongoose');
 
 const compassionRequestSchema = new mongoose.Schema({
+  userId: { 
+    type: String, 
+    trim: true
+  },
   name: { 
     type: String, 
     required: true,

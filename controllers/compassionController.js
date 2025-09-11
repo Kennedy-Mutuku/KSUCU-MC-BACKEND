@@ -31,6 +31,40 @@ const compassionController = {
     }
   },
 
+  // Get user's own requests
+  getUserRequests: async (req, res) => {
+    try {
+      const userId = req.user?._id || req.body.userId || req.query.userId;
+      
+      if (!userId) {
+        return res.status(400).json({ error: 'User ID is required' });
+      }
+
+      // Get both help requests and donations for the user
+      const [helpRequests, donations] = await Promise.all([
+        CompassionRequest.find({ userId: userId }).sort({ submittedAt: -1 }),
+        CompassionDonation.find({ userId: userId }).sort({ submittedAt: -1 })
+      ]);
+
+      // Format requests with type information
+      const formattedRequests = [
+        ...helpRequests.map(req => ({ ...req.toObject(), type: 'help' })),
+        ...donations.map(don => ({ ...don.toObject(), type: 'donation' }))
+      ].sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
+      
+      res.json({
+        message: 'User requests retrieved successfully',
+        requests: formattedRequests
+      });
+    } catch (error) {
+      console.error('Error fetching user requests:', error);
+      res.status(500).json({ 
+        error: 'Failed to fetch user requests',
+        message: error.message 
+      });
+    }
+  },
+
   // Get all help requests (Admin only)
   getAllHelpRequests: async (req, res) => {
     try {

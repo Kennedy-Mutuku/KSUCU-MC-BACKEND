@@ -6,6 +6,7 @@ const compassionController = require('../controllers/compassionController');
 
 // Help Request Routes
 router.post('/help-request', compassionController.createHelpRequest);
+router.get('/user-requests', compassionController.getUserRequests);
 
 // Donation Routes  
 router.post('/donation', compassionController.createDonation);
