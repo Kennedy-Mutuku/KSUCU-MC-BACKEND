@@ -6,7 +6,11 @@ const fs = require('fs');
 // Configure multer for media image uploads
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const uploadDir = path.join(__dirname, '../uploads/media');
+    // Use a persistent directory in production
+    const uploadDir = process.env.NODE_ENV === 'production' 
+      ? path.join('/home/ken/ksucu-uploads/media')
+      : path.join(__dirname, '../uploads/media');
+    
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
     }
@@ -163,7 +167,22 @@ exports.uploadImage = async (req, res) => {
         });
       }
 
+      // Store just the filename, construct full URL on frontend
       const imageUrl = `/uploads/media/${req.file.filename}`;
+      
+      // In production, ensure symlink exists
+      if (process.env.NODE_ENV === 'production') {
+        const symlinkPath = path.join(__dirname, '../uploads/media');
+        const targetPath = '/home/ken/ksucu-uploads/media';
+        
+        if (!fs.existsSync(symlinkPath)) {
+          try {
+            fs.symlinkSync(targetPath, symlinkPath);
+          } catch (err) {
+            console.log('Symlink already exists or cannot be created:', err.message);
+          }
+        }
+      }
       
       res.status(200).json({
         success: true,
