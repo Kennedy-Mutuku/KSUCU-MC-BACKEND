@@ -112,7 +112,7 @@ exports.countSaved = async (req,res) => {
 }
 
 exports.bibleStudy = async (req,res) => {
-  const { name, residence, yos, phone, gender } = req.body;
+  const { name, residence, yos, phone, gender, isPastor } = req.body;
 
   const existingUser = await bs.findOne({phone});
   if (existingUser) {
@@ -120,8 +120,9 @@ exports.bibleStudy = async (req,res) => {
   }
 
   try {
-    const newBs = new bs({ name, residence, yos, phone, gender });
+    const newBs = new bs({ name, residence, yos, phone, gender, isPastor: isPastor || false });
     await newBs.save();
+    console.log(`Bible Study user registered: ${name} (${phone}) - Pastor: ${isPastor || false}`);
     res.status(200).send('Successfully saved');
   } catch (err) {
     console.log(err);

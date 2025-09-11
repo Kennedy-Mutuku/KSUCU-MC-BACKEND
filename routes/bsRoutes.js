@@ -11,6 +11,7 @@ router.post('/login', bsAdmin.login);
 router.post('/logout', bsAuthMiddleware, bsAdmin.logout);
 
 router.get('/users', bsAuthMiddleware, bsAdmin.getSoulsSaved);
+router.put('/users/:phone/pastor', bsAuthMiddleware, bsAdmin.updatePastorStatus);
 router.delete('/users/:phone', bsAuthMiddleware, bsAdmin.deleteUser);
 
 // Residence management routes

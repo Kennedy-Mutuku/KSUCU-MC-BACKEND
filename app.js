@@ -119,11 +119,14 @@ app.use('/api', settingsRoutes);
 app.use('/api/compassion', compassionRoutes);
 
 // Serve uploaded files statically
+const uploadsPath = path.join(__dirname, 'uploads');
+console.log('📁 Static files: Serving uploads from:', uploadsPath);
+console.log('📁 Static files: Directory exists:', fs.existsSync(uploadsPath));
+
 if (process.env.NODE_ENV === 'production') {
-    // Use local uploads directory instead of /var/www/uploads for now
-    app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+    app.use('/uploads', express.static(uploadsPath));
 } else {
-    app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+    app.use('/uploads', express.static(uploadsPath));
 }
 
 if(process.env.NODE_ENV === 'production'){

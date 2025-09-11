@@ -80,6 +80,48 @@ exports.getSoulsSaved = async (req, res) => {
       }
 };
 
+// Update pastor status for a Bible Study user (admin only)
+exports.updatePastorStatus = async (req, res) => {
+    try {
+        const { phone } = req.params;
+        const { isPastor } = req.body;
+        
+        if (!phone) {
+            return res.status(400).json({ message: 'Phone number is required' });
+        }
+
+        if (typeof isPastor !== 'boolean') {
+            return res.status(400).json({ message: 'Pastor status must be true or false' });
+        }
+
+        const updatedUser = await bsUsers.findOneAndUpdate(
+            { phone },
+            { isPastor },
+            { new: true }
+        );
+
+        if (!updatedUser) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        console.log(`Bible Study user pastor status updated: ${updatedUser.name} (${updatedUser.phone}) - Pastor: ${isPastor}`);
+        res.status(200).json({ 
+            message: `User ${isPastor ? 'marked as pastor' : 'unmarked as pastor'} successfully`,
+            user: {
+                name: updatedUser.name,
+                phone: updatedUser.phone,
+                isPastor: updatedUser.isPastor
+            }
+        });
+    } catch (error) {
+        console.error('Error updating pastor status:', error);
+        res.status(500).json({ 
+            error: 'Failed to update pastor status',
+            message: error.message 
+        });
+    }
+};
+
 // Delete a Bible Study user (admin only)
 exports.deleteUser = async (req, res) => {
     try {

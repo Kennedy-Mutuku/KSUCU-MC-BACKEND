@@ -107,9 +107,13 @@ exports.sendMessage = async (req, res) => {
 // Upload media
 exports.uploadMedia = async (req, res) => {
   try {
+    console.log('📁 Chat Upload: Request received');
+    console.log('📁 Chat Upload: Headers:', req.headers);
+    console.log('📁 Chat Upload: User:', req.user);
+    
     upload(req, res, async (err) => {
       if (err) {
-        console.error('Upload error:', err);
+        console.error('📁 Chat Upload: Multer error:', err);
         return res.status(400).json({ success: false, message: err.message });
       }
 
