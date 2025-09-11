@@ -28,10 +28,16 @@ const upload = multer({
   },
   fileFilter: (req, file, cb) => {
     const allowedMimes = [
-      'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp',
-      'video/mp4', 'video/avi', 'video/mov', 'video/wmv', 'video/webm',
-      'audio/mp3', 'audio/wav', 'audio/ogg', 'audio/m4a', 'audio/aac',
-      'application/pdf', 'text/plain'
+      // Images
+      'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/bmp', 'image/tiff',
+      // Videos
+      'video/mp4', 'video/avi', 'video/mov', 'video/wmv', 'video/webm', 'video/mkv', 'video/flv', 'video/3gp',
+      // Audio
+      'audio/mp3', 'audio/wav', 'audio/ogg', 'audio/m4a', 'audio/aac', 'audio/webm', 'audio/mpeg',
+      // Documents
+      'application/pdf', 'text/plain', 'application/msword', 
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     ];
     
     if (allowedMimes.includes(file.mimetype)) {
@@ -128,6 +134,15 @@ exports.uploadMedia = async (req, res) => {
 
       const mediaUrl = `/uploads/chat/${req.file.filename}`;
 
+      console.log('📁 Chat Upload: File details:', {
+        originalName: req.file.originalname,
+        filename: req.file.filename,
+        size: req.file.size,
+        mimetype: req.file.mimetype,
+        path: req.file.path,
+        mediaUrl: mediaUrl
+      });
+
       const newMessage = new ChatMessage({
         senderId: userId,
         senderName: user.username,
@@ -140,6 +155,7 @@ exports.uploadMedia = async (req, res) => {
       });
 
       await newMessage.save();
+      console.log('📁 Chat Upload: Message saved successfully:', newMessage._id);
 
       // Populate replyTo field for response
       await newMessage.populate('replyTo', 'message senderName timestamp');
