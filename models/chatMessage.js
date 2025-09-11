@@ -71,6 +71,36 @@ const chatMessageSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId, 
     ref: 'ChatMessage', 
     default: null 
+  },
+  reactions: {
+    likes: [{
+      userId: { 
+        type: mongoose.Schema.Types.Mixed,
+        required: false
+      },
+      username: {
+        type: String,
+        required: false
+      },
+      timestamp: { 
+        type: Date, 
+        default: Date.now 
+      }
+    }],
+    dislikes: [{
+      userId: { 
+        type: mongoose.Schema.Types.Mixed,
+        required: false
+      },
+      username: {
+        type: String,
+        required: false
+      },
+      timestamp: { 
+        type: Date, 
+        default: Date.now 
+      }
+    }]
   }
 }, { timestamps: true });
 

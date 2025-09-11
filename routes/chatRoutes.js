@@ -30,4 +30,8 @@ router.delete('/delete-for-me/:messageId', chatController.deleteMessageForMe);
 // Update message status
 router.put('/status/:messageId', chatController.updateMessageStatus);
 
+// Reaction routes (allow guest access)
+router.post('/react/:messageId', chatController.addReaction);
+router.get('/reactions/:messageId', chatController.getMessageReactions);
+
 module.exports = router;

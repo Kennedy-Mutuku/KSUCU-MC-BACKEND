@@ -173,20 +173,16 @@ const User = require('./models/user');
 io.use(async (socket, next) => {
   try {
     const token = socket.handshake.auth.token;
-    const guestName = socket.handshake.auth.guestName;
     console.log(`🔐 Socket auth - Token received: ${token ? 'Yes' : 'No'}, Token value: ${token}`);
-    console.log(`👤 Socket auth - Guest name received: ${guestName ? 'Yes' : 'No'}, Name: ${guestName}`);
     
-    // Allow guest connections
+    // Require authentication - no guest access
     if (!token || token === 'guest') {
-      socket.userId = null;
-      socket.username = guestName || 'Guest';
-      console.log(`👤 Socket auth - User connecting as ${socket.username} (${guestName ? 'named guest' : 'anonymous guest'})`);
-      next();
+      console.log('❌ Socket auth - No valid token provided, rejecting connection');
+      next(new Error('Authentication required'));
       return;
     }
 
-    // Try to authenticate if token is provided
+    // Try to authenticate with JWT
     try {
       const decoded = jwt.verify(token, process.env.JWT_USER_SECRET);
       console.log('🔍 Socket auth - JWT decoded successfully, userId:', decoded.userId);
@@ -196,59 +192,43 @@ io.use(async (socket, next) => {
         socket.userId = decoded.userId;
         socket.username = user.username;
         console.log(`✅ Socket auth - Authenticated user: ${user.username} (ID: ${decoded.userId})`);
+        next();
       } else {
-        // User not found, treat as guest
-        socket.userId = null;
-        socket.username = 'Guest';
-        console.log('❌ Socket auth - User not found in database, treating as Guest');
+        console.log('❌ Socket auth - User not found in database');
+        next(new Error('User not found'));
       }
     } catch (jwtError) {
-      // Invalid token, treat as guest
-      socket.userId = null;
-      socket.username = 'Guest';
       console.log('❌ Socket auth - JWT verification failed:', jwtError.message);
+      next(new Error('Invalid token'));
     }
-    
-    next();
   } catch (err) {
-    // Any other error, still allow as guest
-    socket.userId = null;
-    socket.username = 'Guest';
     console.log('❌ Socket auth - Unexpected error:', err.message);
-    next();
+    next(new Error('Authentication failed'));
   }
 });
 
 io.on('connection', async (socket) => {
   console.log(`User ${socket.username} connected with socket ${socket.id}`);
 
-  // Add user to online users (only for authenticated users)
+  // Add user to online users (all users are now authenticated)
   try {
-    if (socket.userId) {
-      await OnlineUsers.findOneAndUpdate(
-        { userId: socket.userId },
-        {
-          userId: socket.userId,
-          username: socket.username,
-          socketId: socket.id,
-          status: 'online',
-          lastSeen: new Date()
-        },
-        { upsert: true, new: true }
-      );
+    await OnlineUsers.findOneAndUpdate(
+      { userId: socket.userId },
+      {
+        userId: socket.userId,
+        username: socket.username,
+        socketId: socket.id,
+        status: 'online',
+        lastSeen: new Date()
+      },
+      { upsert: true, new: true }
+    );
 
-      // Broadcast updated online users
-      const onlineUsers = await OnlineUsers.find({ status: 'online' })
-        .populate('userId', 'username')
-        .select('username status lastSeen');
-      io.emit('onlineUsersUpdate', onlineUsers);
-    } else {
-      // For guest users, just broadcast current online users
-      const onlineUsers = await OnlineUsers.find({ status: 'online' })
-        .populate('userId', 'username')
-        .select('username status lastSeen');
-      io.emit('onlineUsersUpdate', onlineUsers);
-    }
+    // Broadcast updated online users
+    const onlineUsers = await OnlineUsers.find({ status: 'online' })
+      .populate('userId', 'username')
+      .select('username status lastSeen');
+    io.emit('onlineUsersUpdate', onlineUsers);
   } catch (error) {
     console.error('Error updating online users:', error);
   }
@@ -322,10 +302,8 @@ io.on('connection', async (socket) => {
         return;
       }
 
-      // Check authorization - handle both authenticated users and guest users
-      const isAuthorized = 
-        (socket.userId && chatMessage.senderId && chatMessage.senderId.toString() === socket.userId) ||
-        (!socket.userId && chatMessage.senderName === socket.username);
+      // Check authorization - only authenticated users
+      const isAuthorized = socket.userId && chatMessage.senderId && chatMessage.senderId.toString() === socket.userId;
       
       if (!isAuthorized) {
         socket.emit('error', { message: 'Not authorized to delete this message' });
@@ -355,27 +333,16 @@ io.on('connection', async (socket) => {
       }
 
       // Check if message already deleted for this user
-      const alreadyDeleted = chatMessage.deletedFor.some(del => {
-        if (socket.userId) {
-          return del.userId && del.userId.toString() === socket.userId;
-        } else {
-          return del.username === socket.username;
-        }
-      });
+      const alreadyDeleted = chatMessage.deletedFor.some(del => 
+        del.userId && del.userId.toString() === socket.userId
+      );
 
       if (!alreadyDeleted) {
-        // Add user to deletedFor array based on authentication status
-        if (socket.userId) {
-          chatMessage.deletedFor.push({ 
-            userId: socket.userId, 
-            deletedAt: new Date() 
-          });
-        } else {
-          chatMessage.deletedFor.push({ 
-            username: socket.username, 
-            deletedAt: new Date() 
-          });
-        }
+        // Add user to deletedFor array
+        chatMessage.deletedFor.push({ 
+          userId: socket.userId, 
+          deletedAt: new Date() 
+        });
         await chatMessage.save();
       }
 
@@ -422,44 +389,106 @@ io.on('connection', async (socket) => {
     });
   });
 
+  // Handle message reactions
+  socket.on('addReaction', async (data) => {
+    try {
+      const { messageId, reactionType } = data;
+      
+      if (!['like', 'dislike'].includes(reactionType)) {
+        socket.emit('error', { message: 'Invalid reaction type' });
+        return;
+      }
+
+      const chatMessage = await ChatMessage.findById(messageId);
+      if (!chatMessage) {
+        socket.emit('error', { message: 'Message not found' });
+        return;
+      }
+
+      // Initialize reactions if not present
+      if (!chatMessage.reactions) {
+        chatMessage.reactions = { likes: [], dislikes: [] };
+      }
+
+      const reactionArray = reactionType === 'like' ? chatMessage.reactions.likes : chatMessage.reactions.dislikes;
+      const oppositeArray = reactionType === 'like' ? chatMessage.reactions.dislikes : chatMessage.reactions.likes;
+
+      // Check if user already reacted
+      const existingReactionIndex = reactionArray.findIndex(reaction => 
+        reaction.userId && reaction.userId.toString() === socket.userId.toString()
+      );
+
+      const oppositeReactionIndex = oppositeArray.findIndex(reaction => 
+        reaction.userId && reaction.userId.toString() === socket.userId.toString()
+      );
+
+      // Remove opposite reaction if exists
+      if (oppositeReactionIndex > -1) {
+        oppositeArray.splice(oppositeReactionIndex, 1);
+      }
+
+      // Toggle current reaction
+      if (existingReactionIndex > -1) {
+        // Remove existing reaction
+        reactionArray.splice(existingReactionIndex, 1);
+      } else {
+        // Add new reaction
+        reactionArray.push({
+          userId: socket.userId,
+          username: socket.username,
+          timestamp: new Date()
+        });
+      }
+
+      await chatMessage.save();
+
+      // Broadcast reaction update to all users
+      io.to('community-chat').emit('reactionUpdate', { 
+        messageId, 
+        reactions: chatMessage.reactions 
+      });
+
+    } catch (error) {
+      console.error('Error handling reaction:', error);
+      socket.emit('error', { message: 'Failed to add reaction' });
+    }
+  });
+
   // Handle disconnect
   socket.on('disconnect', async () => {
     console.log(`User ${socket.username} disconnected`);
 
     try {
-      // Only handle disconnect for authenticated users
-      if (socket.userId) {
-        // Update user status to offline
-        await OnlineUsers.findOneAndUpdate(
-          { userId: socket.userId },
-          { 
-            status: 'offline',
-            lastSeen: new Date()
+      // Update user status to offline
+      await OnlineUsers.findOneAndUpdate(
+        { userId: socket.userId },
+        { 
+          status: 'offline',
+          lastSeen: new Date()
+        }
+      );
+
+      // Remove from online users after a delay (in case of reconnection)
+      setTimeout(async () => {
+        try {
+          const stillOnline = await OnlineUsers.findOne({
+            userId: socket.userId,
+            status: 'online'
+          });
+
+          if (!stillOnline) {
+            await OnlineUsers.findOneAndDelete({ userId: socket.userId });
           }
-        );
 
-        // Remove from online users after a delay (in case of reconnection)
-        setTimeout(async () => {
-          try {
-            const stillOnline = await OnlineUsers.findOne({
-              userId: socket.userId,
-              status: 'online'
-            });
-
-            if (!stillOnline) {
-              await OnlineUsers.findOneAndDelete({ userId: socket.userId });
-            }
-
-            // Broadcast updated online users
-            const onlineUsers = await OnlineUsers.find({ status: 'online' })
-              .populate('userId', 'username')
-              .select('username status lastSeen');
-            io.emit('onlineUsersUpdate', onlineUsers);
-          } catch (error) {
-            console.error('Error cleaning up offline user:', error);
-          }
-        }, 30000); // 30 seconds delay
-      }
+          // Broadcast updated online users
+          const onlineUsers = await OnlineUsers.find({ status: 'online' })
+            .populate('userId', 'username')
+            .select('username status lastSeen');
+          io.emit('onlineUsersUpdate', onlineUsers);
+        } catch (error) {
+          console.error('Error cleaning up offline user:', error);
+        }
+      }, 30000); // 30 seconds delay
 
     } catch (error) {
       console.error('Error handling disconnect:', error);

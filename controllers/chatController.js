@@ -273,3 +273,124 @@ exports.getOnlineUsers = async (req, res) => {
     res.status(500).json({ success: false, message: 'Failed to fetch online users' });
   }
 };
+
+// Add reaction to message
+exports.addReaction = async (req, res) => {
+  try {
+    const { messageId } = req.params;
+    const { reactionType } = req.body; // 'like' or 'dislike'
+    let userId = null;
+    let username = null;
+
+    // Handle both authenticated and guest users
+    if (req.user) {
+      userId = req.user.userId;
+      const user = await User.findById(userId);
+      username = user ? user.username : null;
+    } else if (req.body.guestUsername) {
+      username = req.body.guestUsername;
+      userId = 'guest';
+    }
+
+    if (!username) {
+      return res.status(400).json({ success: false, message: 'User identification required' });
+    }
+
+    if (!['like', 'dislike'].includes(reactionType)) {
+      return res.status(400).json({ success: false, message: 'Invalid reaction type' });
+    }
+
+    const chatMessage = await ChatMessage.findById(messageId);
+    if (!chatMessage) {
+      return res.status(404).json({ success: false, message: 'Message not found' });
+    }
+
+    // Initialize reactions if not present
+    if (!chatMessage.reactions) {
+      chatMessage.reactions = { likes: [], dislikes: [] };
+    }
+
+    const reactionArray = reactionType === 'like' ? chatMessage.reactions.likes : chatMessage.reactions.dislikes;
+    const oppositeArray = reactionType === 'like' ? chatMessage.reactions.dislikes : chatMessage.reactions.likes;
+
+    // Check if user already reacted
+    const existingReactionIndex = reactionArray.findIndex(reaction => 
+      (userId && reaction.userId && reaction.userId.toString() === userId.toString()) ||
+      (username && reaction.username === username)
+    );
+
+    const oppositeReactionIndex = oppositeArray.findIndex(reaction => 
+      (userId && reaction.userId && reaction.userId.toString() === userId.toString()) ||
+      (username && reaction.username === username)
+    );
+
+    // Remove opposite reaction if exists
+    if (oppositeReactionIndex > -1) {
+      oppositeArray.splice(oppositeReactionIndex, 1);
+    }
+
+    // Toggle current reaction
+    if (existingReactionIndex > -1) {
+      // Remove existing reaction
+      reactionArray.splice(existingReactionIndex, 1);
+    } else {
+      // Add new reaction
+      reactionArray.push({
+        userId: userId,
+        username: username,
+        timestamp: new Date()
+      });
+    }
+
+    await chatMessage.save();
+
+    // Return updated message with reaction counts
+    const updatedMessage = await ChatMessage.findById(messageId)
+      .populate('replyTo', 'message senderName timestamp')
+      .lean();
+
+    res.json({ 
+      success: true, 
+      message: updatedMessage,
+      reaction: {
+        type: reactionType,
+        added: existingReactionIndex === -1,
+        likesCount: chatMessage.reactions.likes.length,
+        dislikesCount: chatMessage.reactions.dislikes.length
+      }
+    });
+  } catch (error) {
+    console.error('Error adding reaction:', error);
+    res.status(500).json({ success: false, message: 'Failed to add reaction' });
+  }
+};
+
+// Get reactions for a message
+exports.getMessageReactions = async (req, res) => {
+  try {
+    const { messageId } = req.params;
+
+    const chatMessage = await ChatMessage.findById(messageId)
+      .select('reactions')
+      .lean();
+
+    if (!chatMessage) {
+      return res.status(404).json({ success: false, message: 'Message not found' });
+    }
+
+    const reactions = chatMessage.reactions || { likes: [], dislikes: [] };
+
+    res.json({
+      success: true,
+      reactions: {
+        likes: reactions.likes,
+        dislikes: reactions.dislikes,
+        likesCount: reactions.likes.length,
+        dislikesCount: reactions.dislikes.length
+      }
+    });
+  } catch (error) {
+    console.error('Error getting reactions:', error);
+    res.status(500).json({ success: false, message: 'Failed to get reactions' });
+  }
+};
