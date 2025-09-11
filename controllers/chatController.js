@@ -160,6 +160,13 @@ exports.uploadMedia = async (req, res) => {
       // Populate replyTo field for response
       await newMessage.populate('replyTo', 'message senderName timestamp');
 
+      // Broadcast the uploaded media message to all connected clients
+      const io = req.app.get('io');
+      if (io) {
+        io.to('community-chat').emit('newMessage', newMessage);
+        console.log('📁 Chat Upload: Message broadcasted to community-chat');
+      }
+
       res.json({ success: true, message: newMessage });
     });
   } catch (error) {
@@ -345,18 +352,16 @@ exports.addReaction = async (req, res) => {
       oppositeArray.splice(oppositeReactionIndex, 1);
     }
 
-    // Toggle current reaction
-    if (existingReactionIndex > -1) {
-      // Remove existing reaction
-      reactionArray.splice(existingReactionIndex, 1);
-    } else {
-      // Add new reaction
+    // Always add reaction (don't toggle - allow multiple likes)
+    if (existingReactionIndex === -1) {
+      // Add new reaction only if user hasn't reacted before
       reactionArray.push({
         userId: userId,
         username: username,
         timestamp: new Date()
       });
     }
+    // If user already reacted, do nothing (keep the existing reaction)
 
     await chatMessage.save();
 

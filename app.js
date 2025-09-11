@@ -164,6 +164,9 @@ const io = socketIo(server, {
   }
 });
 
+// Make io available to routes
+app.set('io', io);
+
 // Socket.IO chat functionality
 const ChatMessage = require('./models/chatMessage');
 const OnlineUsers = require('./models/onlineUsers');
@@ -427,18 +430,16 @@ io.on('connection', async (socket) => {
         oppositeArray.splice(oppositeReactionIndex, 1);
       }
 
-      // Toggle current reaction
-      if (existingReactionIndex > -1) {
-        // Remove existing reaction
-        reactionArray.splice(existingReactionIndex, 1);
-      } else {
-        // Add new reaction
+      // Always add reaction (don't toggle - allow multiple likes)
+      if (existingReactionIndex === -1) {
+        // Add new reaction only if user hasn't reacted before
         reactionArray.push({
           userId: socket.userId,
           username: socket.username,
           timestamp: new Date()
         });
       }
+      // If user already reacted, do nothing (keep the existing reaction)
 
       await chatMessage.save();
 
