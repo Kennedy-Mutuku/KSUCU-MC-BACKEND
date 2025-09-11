@@ -15,6 +15,7 @@ const chatRoutes = require('./routes/chatRoutes')
 const mediaRoutes = require('./routes/mediaRoutes')
 const requisitionRoutes = require('./routes/requisitionRoutes')
 const settingsRoutes = require('./routes/settingsRoutes')
+const compassionRoutes = require('./routes/compassionRoutes')
 require('dotenv').config();
 const fs = require('fs');
 const cors = require('cors')
@@ -115,6 +116,7 @@ app.use('/chat', chatRoutes);
 app.use('/api', mediaRoutes);
 app.use('/api', requisitionRoutes);
 app.use('/api', settingsRoutes);
+app.use('/api/compassion', compassionRoutes);
 
 // Serve uploaded files statically
 if (process.env.NODE_ENV === 'production') {
