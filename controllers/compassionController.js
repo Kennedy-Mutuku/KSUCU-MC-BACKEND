@@ -1,5 +1,6 @@
 const CompassionRequest = require('../models/compassionRequest');
 const CompassionDonation = require('../models/compassionDonation');
+const CompassionSettings = require('../models/compassionSettings');
 
 const compassionController = {
   // ===== HELP REQUESTS =====
@@ -289,6 +290,176 @@ const compassionController = {
       console.error('Error fetching dashboard stats:', error);
       res.status(500).json({ 
         error: 'Failed to fetch dashboard statistics',
+        message: error.message 
+      });
+    }
+  },
+
+  // ===== SETTINGS MANAGEMENT =====
+
+  // Get payment methods and contact info (Public)
+  getSettings: async (req, res) => {
+    try {
+      const settings = await CompassionSettings.getSettings();
+      
+      // Filter only active items for public display
+      const publicSettings = {
+        paymentMethods: settings.paymentMethods.filter(method => method.isActive),
+        contactInfo: settings.contactInfo
+          .filter(contact => contact.isActive)
+          .sort((a, b) => a.priority - b.priority)
+      };
+
+      res.json({
+        message: 'Settings retrieved successfully',
+        settings: publicSettings
+      });
+    } catch (error) {
+      console.error('Error fetching settings:', error);
+      res.status(500).json({ 
+        error: 'Failed to fetch settings',
+        message: error.message 
+      });
+    }
+  },
+
+  // Get all settings including inactive (Admin only)
+  getAllSettings: async (req, res) => {
+    try {
+      const settings = await CompassionSettings.getSettings();
+      
+      res.json({
+        message: 'All settings retrieved successfully',
+        settings: settings
+      });
+    } catch (error) {
+      console.error('Error fetching all settings:', error);
+      res.status(500).json({ 
+        error: 'Failed to fetch settings',
+        message: error.message 
+      });
+    }
+  },
+
+  // Update payment methods (Admin only)
+  updatePaymentMethods: async (req, res) => {
+    try {
+      const { paymentMethods } = req.body;
+      
+      const settings = await CompassionSettings.getSettings();
+      settings.paymentMethods = paymentMethods;
+      settings.lastUpdated = new Date();
+      settings.updatedBy = 'Admin'; // Could be enhanced with actual admin info
+      
+      await settings.save();
+
+      console.log('Payment methods updated:', paymentMethods.length, 'methods');
+
+      res.json({
+        message: 'Payment methods updated successfully',
+        paymentMethods: settings.paymentMethods
+      });
+    } catch (error) {
+      console.error('Error updating payment methods:', error);
+      res.status(500).json({ 
+        error: 'Failed to update payment methods',
+        message: error.message 
+      });
+    }
+  },
+
+  // Update contact information (Admin only)
+  updateContactInfo: async (req, res) => {
+    try {
+      const { contactInfo } = req.body;
+      
+      const settings = await CompassionSettings.getSettings();
+      settings.contactInfo = contactInfo;
+      settings.lastUpdated = new Date();
+      settings.updatedBy = 'Admin'; // Could be enhanced with actual admin info
+      
+      await settings.save();
+
+      console.log('Contact info updated:', contactInfo.length, 'contacts');
+
+      res.json({
+        message: 'Contact information updated successfully',
+        contactInfo: settings.contactInfo
+      });
+    } catch (error) {
+      console.error('Error updating contact info:', error);
+      res.status(500).json({ 
+        error: 'Failed to update contact information',
+        message: error.message 
+      });
+    }
+  },
+
+  // Add new payment method (Admin only)
+  addPaymentMethod: async (req, res) => {
+    try {
+      const { name, type, details } = req.body;
+      
+      const settings = await CompassionSettings.getSettings();
+      const newMethod = {
+        name,
+        type,
+        details,
+        isActive: true
+      };
+      
+      settings.paymentMethods.push(newMethod);
+      settings.lastUpdated = new Date();
+      settings.updatedBy = 'Admin';
+      
+      await settings.save();
+
+      console.log('New payment method added:', name);
+
+      res.json({
+        message: 'Payment method added successfully',
+        paymentMethod: newMethod
+      });
+    } catch (error) {
+      console.error('Error adding payment method:', error);
+      res.status(500).json({ 
+        error: 'Failed to add payment method',
+        message: error.message 
+      });
+    }
+  },
+
+  // Add new contact info (Admin only)
+  addContactInfo: async (req, res) => {
+    try {
+      const { type, title, value, description, priority } = req.body;
+      
+      const settings = await CompassionSettings.getSettings();
+      const newContact = {
+        type,
+        title,
+        value,
+        description,
+        priority: priority || 0,
+        isActive: true
+      };
+      
+      settings.contactInfo.push(newContact);
+      settings.lastUpdated = new Date();
+      settings.updatedBy = 'Admin';
+      
+      await settings.save();
+
+      console.log('New contact info added:', title);
+
+      res.json({
+        message: 'Contact information added successfully',
+        contactInfo: newContact
+      });
+    } catch (error) {
+      console.error('Error adding contact info:', error);
+      res.status(500).json({ 
+        error: 'Failed to add contact information',
         message: error.message 
       });
     }
