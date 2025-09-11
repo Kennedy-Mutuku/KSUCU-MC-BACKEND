@@ -57,7 +57,15 @@ exports.login = async (req, res) => {
     console.log('🍪 User agent:', req.headers['user-agent']);
     console.log('🍪 Origin:', req.headers.origin);
     
+    // Set httpOnly cookie for API requests (secure)
     res.cookie('user_s', token, cookieOptions);
+    
+    // Set accessible cookie for socket authentication
+    const socketCookieOptions = {
+      ...cookieOptions,
+      httpOnly: false // Make this accessible to JavaScript for socket auth
+    };
+    res.cookie('socket_token', token, socketCookieOptions);
 
     // Sending a success response
      res.status(200).json({ message: 'Login successful' });
@@ -212,7 +220,20 @@ exports.getUserData = async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
-    // Only return necessary user data, you can customize this response as needed
+    
+    // Generate fresh socket token for authenticated users
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_USER_SECRET, { expiresIn: '30d' });
+    
+    // Set socket token cookie (accessible to JavaScript)
+    const socketCookieOptions = {
+      httpOnly: false, // Make accessible for socket auth
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax',
+      ...(process.env.NODE_ENV === 'production' && { domain: '.ksucu-mc.co.ke' })
+    };
+    
+    res.cookie('socket_token', token, socketCookieOptions);
 
     const userData = {
       _id: user._id,
