@@ -1,9 +1,10 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
-const Users = require('../models/user'); 
+const Users = require('../models/user');
 const sAdmin = require('../models/superAdmin');
 const Feedback = require('../models/feedbackSchema');
+const Message = require('../models/message');
 
 // User signup
 exports.signup = async (req, res) => {
@@ -83,13 +84,26 @@ exports.getUsers = async (req, res) => {
     }
 };
 
-// Get all feedback for frontend
+// Get all feedback for frontend (old system)
 exports.getFeedback = async (req, res) => {
     try {
         const feedbacks = await Feedback.find({}, '-_id anonymous name message');
         res.status(200).json(feedbacks);
     } catch (error) {
         res.status(500).json({ message: 'Error fetching feedback', error });
+    }
+};
+
+// Get all messages (new system)
+exports.getMessages = async (req, res) => {
+    try {
+        const messages = await Message.find()
+            .sort({ timestamp: -1 })
+            .lean();
+        res.status(200).json(messages);
+    } catch (error) {
+        console.error('Error fetching messages:', error);
+        res.status(500).json({ message: 'Error fetching messages', error: error.message });
     }
 };
 

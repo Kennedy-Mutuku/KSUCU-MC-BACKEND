@@ -16,6 +16,7 @@ const mediaRoutes = require('./routes/mediaRoutes')
 const requisitionRoutes = require('./routes/requisitionRoutes')
 const settingsRoutes = require('./routes/settingsRoutes')
 const compassionRoutes = require('./routes/compassionRoutes')
+const messageRoutes = require('./routes/messageRoutes')
 require('dotenv').config();
 const fs = require('fs');
 const cors = require('cors')
@@ -46,10 +47,11 @@ app.use(cookieParser());
 
 const corsOptions = {
     origin: function(origin, callback) {
-      console.log(`CORS Request from origin: "${origin}", NODE_ENV: "${process.env.NODE_ENV}"`);
-      
+      const nodeEnv = (process.env.NODE_ENV || '').trim();
+      console.log(`CORS Request from origin: "${origin}", NODE_ENV: "${nodeEnv}"`);
+
       // More permissive CORS for production debugging
-      if (process.env.NODE_ENV === 'development') {
+      if (nodeEnv === 'development') {
         const devOrigins = ['http://localhost:5173','http://localhost:5174','http://localhost:5175','http://localhost:5176'];
         console.log(`Dev allowed origins:`, devOrigins);
         
@@ -117,6 +119,7 @@ app.use('/api', mediaRoutes);
 app.use('/api', requisitionRoutes);
 app.use('/api', settingsRoutes);
 app.use('/api/compassion', compassionRoutes);
+app.use('/messages', messageRoutes);
 
 // Serve uploaded files statically
 const uploadsPath = path.join(__dirname, 'uploads');
@@ -145,7 +148,8 @@ if(process.env.NODE_ENV === 'production'){
 const io = socketIo(server, {
   cors: {
     origin: function(origin, callback) {
-      if (process.env.NODE_ENV === 'development') {
+      const nodeEnv = (process.env.NODE_ENV || '').trim();
+      if (nodeEnv === 'development') {
         const devOrigins = ['http://localhost:5173','http://localhost:5174','http://localhost:5175','http://localhost:5176'];
         if (devOrigins.includes(origin) || !origin) {
           callback(null, true);

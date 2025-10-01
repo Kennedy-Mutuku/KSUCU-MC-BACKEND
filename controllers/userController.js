@@ -71,13 +71,16 @@ exports.login = async (req, res) => {
      res.status(200).json({ message: 'Login successful' });
     
   } catch (error) {
-    console.log('Login error:', error);
-    
+    console.error('❌ Login error:', error);
+    console.error('❌ Error stack:', error.stack);
+    console.error('❌ Error name:', error.name);
+    console.error('❌ Error message:', error.message);
+
     // Ensure we send a string message, not an error object
     const errorMessage = error instanceof Error ? error.message : 'Internal server error';
-    res.status(500).json({ 
+    res.status(500).json({
       message: errorMessage,
-      error: errorMessage 
+      error: errorMessage
     });
   }
   
