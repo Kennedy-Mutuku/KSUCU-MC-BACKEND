@@ -1,4 +1,4 @@
-require('dotenv').config({ path: '../.env' });
+require('dotenv').config();
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const SuperAdmin = require('../models/superAdmin');
@@ -6,7 +6,8 @@ const SuperAdmin = require('../models/superAdmin');
 async function createSuperAdmin() {
     try {
         // Connect to MongoDB
-        await mongoose.connect(process.env.DB_CONNECTION_URI, {
+        const dbUri = process.env.DB_CONNECTION_URI || 'mongodb://127.0.0.1:27017/ksucu-mc';
+        await mongoose.connect(dbUri, {
             useNewUrlParser: true,
             useUnifiedTopology: true,
         });

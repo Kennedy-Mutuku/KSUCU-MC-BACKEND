@@ -53,6 +53,7 @@ exports.login = async (req, res) => {
         }
         
         console.log('Super Admin login successful for:', email);
+        console.log('🔐 Creating token with JWT_ADMIN_SECRET:', process.env.JWT_ADMIN_SECRET ? `${process.env.JWT_ADMIN_SECRET.substring(0, 5)}...` : 'missing');
 
         const token = jwt.sign({ userId: user._id }, process.env.JWT_ADMIN_SECRET, { expiresIn: '1h' });
 

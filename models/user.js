@@ -10,6 +10,10 @@ const userSchema = new mongoose.Schema({
   course: { type: String },
   et: { type: String },
   password: { type: String },
+  hasVoted: { type: Boolean, default: false },
+  votedAt: { type: Date },
+  votedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'PollingOfficer' },
+  registeredBy: { type: mongoose.Schema.Types.ObjectId, ref: 'PollingOfficer' }
 });
 
 module.exports = mongoose.model('User', userSchema);
