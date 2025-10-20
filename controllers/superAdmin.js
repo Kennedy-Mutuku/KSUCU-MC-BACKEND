@@ -5,6 +5,7 @@ const Users = require('../models/user');
 const sAdmin = require('../models/superAdmin');
 const Feedback = require('../models/feedbackSchema');
 const Message = require('../models/message');
+const PollingStats = require('../models/pollingStats');
 
 // User signup
 exports.signup = async (req, res) => {
@@ -105,6 +106,48 @@ exports.getMessages = async (req, res) => {
     } catch (error) {
         console.error('Error fetching messages:', error);
         res.status(500).json({ message: 'Error fetching messages', error: error.message });
+    }
+};
+
+// Reset polling data for new election
+exports.resetPollingData = async (req, res) => {
+    try {
+        console.log('Super Admin initiated polling reset');
+
+        // Reset all users' voting status
+        const updateResult = await Users.updateMany(
+            {},
+            {
+                $set: {
+                    hasVoted: false
+                },
+                $unset: {
+                    votedAt: "",
+                    votedBy: ""
+                }
+            }
+        );
+
+        // Reset polling stats
+        await PollingStats.findOneAndUpdate(
+            {},
+            {
+                totalVoted: 0,
+                totalNotVoted: await Users.countDocuments(),
+                lastUpdated: new Date()
+            },
+            { upsert: true }
+        );
+
+        console.log(`Polling data reset - ${updateResult.modifiedCount} users affected`);
+
+        res.status(200).json({
+            message: 'Polling data reset successfully',
+            usersAffected: updateResult.modifiedCount
+        });
+    } catch (error) {
+        console.error('Error resetting polling data:', error);
+        res.status(500).json({ message: 'Error resetting polling data', error: error.message });
     }
 };
 
