@@ -10,7 +10,7 @@ const router = express.Router();
 
 // Set up multer for document uploads
 const uploadDir = process.env.NODE_ENV === 'production'
-  ? '/home/ksucu/ksucu-uploads/documents/'
+  ? '/home/ken/ksucu-uploads/documents/'
   : path.join(__dirname, '../uploads/documents/');
 
 // Ensure the upload directory exists
