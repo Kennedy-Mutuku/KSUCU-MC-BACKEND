@@ -1,12 +1,69 @@
 const Document = require('../models/documents');
+const DocumentCategory = require('../models/documentCategory');
 const User = require('../models/user');
 const fs = require('fs');
 const path = require('path');
 
+// Create document category (Admin only)
+exports.createCategory = async (req, res) => {
+  try {
+    const { name, description, color, icon } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ message: 'Category name is required' });
+    }
+
+    const createdById = req.user?._id || req.user?.id;
+    if (!createdById) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    // Check if category already exists
+    const existingCategory = await DocumentCategory.findOne({ name });
+    if (existingCategory) {
+      return res.status(400).json({ message: 'Category already exists' });
+    }
+
+    const category = new DocumentCategory({
+      name,
+      description: description || '',
+      color: color || '#00c6ff',
+      icon: icon || '📄',
+      createdBy: createdById
+    });
+
+    await category.save();
+
+    res.status(201).json({
+      message: 'Category created successfully',
+      category
+    });
+  } catch (error) {
+    console.error('Error creating category:', error);
+    res.status(500).json({ message: 'Error creating category', error: error.message });
+  }
+};
+
+// Get all document categories
+exports.getCategories = async (req, res) => {
+  try {
+    const categories = await DocumentCategory.find({ isActive: true })
+      .sort({ order: 1, createdAt: 1 });
+
+    res.json({
+      message: 'Categories retrieved successfully',
+      categories
+    });
+  } catch (error) {
+    console.error('Error fetching categories:', error);
+    res.status(500).json({ message: 'Error fetching categories', error: error.message });
+  }
+};
+
 // Upload document for a specific user (Admin only)
 exports.uploadDocument = async (req, res) => {
   try {
-    const { userId, description } = req.body;
+    const { userId, description, categoryId, categoryName, expiryDate, notes } = req.body;
 
     if (!req.file) {
       return res.status(400).json({ message: 'No file provided' });
@@ -44,10 +101,16 @@ exports.uploadDocument = async (req, res) => {
       fileSize: req.file.size,
       mimeType: req.file.mimetype,
       uploadedBy: uploadedById,
-      description: description || ''
+      description: description || '',
+      category: categoryId || null,
+      categoryName: categoryName || 'Uncategorized',
+      uploadedByAdmin: true,
+      expiryDate: expiryDate || null,
+      notes: notes || ''
     });
 
     await document.save();
+    await document.populate('uploadedBy', 'username email');
 
     res.status(201).json({
       message: 'Document uploaded successfully',
@@ -111,6 +174,11 @@ exports.downloadDocument = async (req, res) => {
     if (!fs.existsSync(document.filePath)) {
       return res.status(404).json({ message: 'File not found on server' });
     }
+
+    // Update download metadata
+    document.downloadedAt = new Date();
+    document.downloadCount = (document.downloadCount || 0) + 1;
+    await document.save();
 
     // Send file
     res.download(document.filePath, document.originalName, (err) => {
@@ -255,5 +323,135 @@ exports.deleteDocumentAdmin = async (req, res) => {
   } catch (error) {
     console.error('Error deleting document (admin):', error);
     res.status(500).json({ message: 'Error deleting document', error: error.message });
+  }
+};
+
+// Get admin dashboard with all documents and users
+exports.getAdminDashboard = async (req, res) => {
+  try {
+    const { searchTerm, categoryId, status, sortBy } = req.query;
+
+    // Build filter object
+    let filter = {};
+
+    if (categoryId) {
+      filter.category = categoryId;
+    }
+
+    if (status) {
+      filter.status = status;
+    }
+
+    let documents = await Document.find(filter)
+      .populate('userId', 'username email phone reg course yos et ministry')
+      .populate('uploadedBy', 'username email')
+      .populate('category', 'name color icon');
+
+    // Apply search filter
+    if (searchTerm) {
+      documents = documents.filter(doc =>
+        doc.originalName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        doc.userId.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        doc.userId.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        doc.categoryName.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // Apply sorting
+    if (sortBy === 'name') {
+      documents.sort((a, b) => a.originalName.localeCompare(b.originalName));
+    } else if (sortBy === 'size') {
+      documents.sort((a, b) => b.fileSize - a.fileSize);
+    } else if (sortBy === 'date') {
+      documents.sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
+    } else {
+      // Default: sort by date descending
+      documents.sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
+    }
+
+    // Get categories for filter
+    const categories = await DocumentCategory.find({ isActive: true }).sort({ order: 1 });
+
+    // Get statistics
+    const stats = {
+      totalDocuments: documents.length,
+      totalUsers: [...new Set(documents.map(d => d.userId._id.toString()))].length,
+      totalCategories: categories.length,
+      byStatus: {
+        active: documents.filter(d => d.status === 'active').length,
+        archived: documents.filter(d => d.status === 'archived').length,
+        expired: documents.filter(d => d.status === 'expired').length
+      }
+    };
+
+    res.json({
+      message: 'Dashboard data retrieved successfully',
+      documents,
+      categories,
+      stats
+    });
+  } catch (error) {
+    console.error('Error fetching dashboard:', error);
+    res.status(500).json({ message: 'Error fetching dashboard', error: error.message });
+  }
+};
+
+// Update document status (Admin only)
+exports.updateDocumentStatus = async (req, res) => {
+  try {
+    const { documentId } = req.params;
+    const { status } = req.body;
+
+    if (!['active', 'archived', 'expired'].includes(status)) {
+      return res.status(400).json({ message: 'Invalid status' });
+    }
+
+    const document = await Document.findByIdAndUpdate(
+      documentId,
+      { status },
+      { new: true }
+    )
+      .populate('userId', 'username email')
+      .populate('uploadedBy', 'username email')
+      .populate('category', 'name color icon');
+
+    if (!document) {
+      return res.status(404).json({ message: 'Document not found' });
+    }
+
+    res.json({
+      message: 'Document status updated successfully',
+      document
+    });
+  } catch (error) {
+    console.error('Error updating document status:', error);
+    res.status(500).json({ message: 'Error updating document status', error: error.message });
+  }
+};
+
+// Archive document (Admin only)
+exports.archiveDocument = async (req, res) => {
+  try {
+    const { documentId } = req.params;
+
+    const document = await Document.findByIdAndUpdate(
+      documentId,
+      { status: 'archived' },
+      { new: true }
+    )
+      .populate('userId', 'username email')
+      .populate('uploadedBy', 'username email');
+
+    if (!document) {
+      return res.status(404).json({ message: 'Document not found' });
+    }
+
+    res.json({
+      message: 'Document archived successfully',
+      document
+    });
+  } catch (error) {
+    console.error('Error archiving document:', error);
+    res.status(500).json({ message: 'Error archiving document', error: error.message });
   }
 };

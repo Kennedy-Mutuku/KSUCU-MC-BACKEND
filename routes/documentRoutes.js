@@ -34,7 +34,7 @@ const upload = multer({
     fileSize: 50 * 1024 * 1024 // 50MB limit
   },
   fileFilter: (req, file, cb) => {
-    // Allowed file types
+    // Allowed file types - expanded for common document and image types
     const allowedTypes = [
       'application/pdf',
       'application/msword',
@@ -44,18 +44,21 @@ const upload = multer({
       'text/plain',
       'image/jpeg',
       'image/png',
-      'image/gif'
+      'image/gif',
+      'image/webp',
+      'application/vnd.ms-powerpoint',
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation'
     ];
 
     if (allowedTypes.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error('Invalid file type. Only PDF, DOC, DOCX, XLS, XLSX, TXT, JPG, PNG, GIF are allowed.'));
+      cb(new Error('Invalid file type. Allowed: PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, TXT, JPG, PNG, GIF, WEBP'));
     }
   }
 });
 
-// User routes (protected)
+// ==================== USER ROUTES (Protected) ====================
 
 // Get user's documents
 router.get('/my-docs', userAuthMiddleware, documentController.getUserDocuments);
@@ -66,21 +69,34 @@ router.get('/download/:documentId', userAuthMiddleware, documentController.downl
 // View document
 router.get('/view/:documentId', userAuthMiddleware, documentController.viewDocument);
 
-// Delete user's own document
+// Delete user's own document (view-only restriction in frontend)
 router.delete('/:documentId', userAuthMiddleware, documentController.deleteDocument);
 
-// Admin routes (protected by super admin middleware)
+// ==================== ADMIN ROUTES (Super Admin Only) ====================
+
+// Category management
+router.post('/admin/category', superAdminMiddleware, documentController.createCategory);
+router.get('/admin/categories', superAdminMiddleware, documentController.getCategories);
+
+// Admin Dashboard
+router.get('/admin/dashboard', superAdminMiddleware, documentController.getAdminDashboard);
 
 // Upload document for a user (admin only)
-router.post('/upload', superAdminMiddleware, upload.single('document'), documentController.uploadDocument);
-
-// Get all documents (admin view)
-router.get('/admin/all', superAdminMiddleware, documentController.getAllDocumentsAdmin);
+router.post('/admin/upload', superAdminMiddleware, upload.single('document'), documentController.uploadDocument);
 
 // Get documents for specific user (admin view)
 router.get('/admin/user/:userId', superAdminMiddleware, documentController.getUserDocumentsAdmin);
 
-// Delete document (admin)
+// Get all documents (admin view)
+router.get('/admin/all', superAdminMiddleware, documentController.getAllDocumentsAdmin);
+
+// Update document status (admin only)
+router.put('/admin/:documentId/status', superAdminMiddleware, documentController.updateDocumentStatus);
+
+// Archive document (admin only)
+router.post('/admin/:documentId/archive', superAdminMiddleware, documentController.archiveDocument);
+
+// Delete document (admin only)
 router.delete('/admin/:documentId', superAdminMiddleware, documentController.deleteDocumentAdmin);
 
 module.exports = router;
